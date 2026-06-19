@@ -1,0 +1,134 @@
+jwt:
+  issuer: 'https://backend.moonkeyeu.com'
+  audience: 'https://www.moonkeyeu.com'
+  public:
+    access:
+      key: ./jwt-keys/access-token/access-token-public.pem
+    refresh:
+      key: ./jwt-keys/refresh-token/refresh-token-public.pem
+  private:
+    access:
+      key: ./jwt-keys/access-token/access-token-private.pem
+    refresh:
+      key: ./jwt-keys/refresh-token/refresh-token-private.pem
+spring:
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:${LOCAL_MYSQL_PORT}}/${MYSQL_DATABASE:${LOCAL_MYSQL_DATABASE}}?createDatabaseIfNotExist=true
+    username: ${MYSQL_USER:${LOCAL_MYSQL_USER}}
+    password: ${MYSQL_PASSWORD:${LOCAL_MYSQL_PASSWORD}}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy:
+          - org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy:
+          - org.springframework.boot.hibernate.SpringImplicitNamingStrategy
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 50
+        jdbc:
+          batch_size: 50
+          time_zone: UTC
+        type:
+          preferred_uuid_jdbc_type: VARCHAR
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+  flyway:
+    clean-disabled: false
+    enabled: true
+    user: ${MYSQL_USER:${LOCAL_MYSQL_USER}}
+    password: ${MYSQL_PASSWORD:${LOCAL_MYSQL_PASSWORD}}
+    locations:
+     - classpath:db/migration/schema
+     - classpath:db/migration/seed
+    baseline-version: 1
+
+
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            client-name: Google
+
+  mail:
+    sender: ${MAIL_SENDER}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+application:
+  seo:
+    name: MoonkeyEU
+  frontend:
+    url: ${DOMAIN_URL:http://localhost:3001}
+  backend:
+    url: http://localhost:8080/api/v1/
+  limiter:
+    threshold: 300000
+    scheduled-time: 300000
+  otp:
+    max-resend-attempts: 3
+    max-validation-attempts: 3
+    cooldown-seconds: 60
+    expiration: 300
+    length: 6
+
+  api:
+    stripe:
+      webhook:
+        key: ${STRIPE_WEBHOOK_API_KEY}
+      key: ${STRIPE_API_KEY}
+      tier:
+        trial:
+          period: 14
+      hosted:
+        configs:
+          update-id: ${STRIPE_HOSTED_CONFIG_UPDATE}
+          cancel-id: ${STRIPE_HOSTED_CONFIG_CANCEL}
+          account-management-id: ${STRIPE_HOSTED_CONFIG_ACCOUNT}
+
+server:
+  port: 8081
+  servlet:
+    context-path: /api/v1/
+  cors:
+    origins: http://localhost:3001
+
+logging:
+  level:
+    security:
+      web: TRACE
+    org:
+      springframework:
+        jdbc:
+          datasource:
+            DriverManagerDataSource: DEBUG
+      hibernate:
+        SQL: off
+        type:
+          descriptor:
+            sql:
+              BasicBinder: TRACE

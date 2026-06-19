@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="|Subscription Expiring Soon - ${appName}|">Subscription Expiring Soon</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 10px auto;
+            background:#fff;
+            border:1px solid rgba(0,0,0,0.1);
+            border-radius:5px;
+            overflow: hidden;
+        }
+        .img-container{
+            position: relative;
+            background: hsl(290, 34%, 10%) url("https://cdn.moonkeyeu.com/media/assets/background/starry-background.png") no-repeat center center;
+            background-size: cover;
+            overflow: hidden;
+        }
+        .img-container img {
+            margin: 2rem 0 0 0;
+        }
+        .details-container{
+            padding: 20px;
+        }
+        .heading {
+            color: hsl(272, 57%, 95%);
+            margin: 1.2rem 0;
+            text-align: center;
+        }
+        .warning-icon {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .warning-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            background-color: #FF9800;
+            border-radius: 50%;
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+        }
+        .subscription-details {
+            background-color: #f9f9f9;
+            border-left: 4px solid #FF9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: hsl(290, 34%, 10%);
+        }
+        .detail-value {
+            color: #666;
+        }
+        .cta-link {
+            display: block;
+            text-align: center;
+            margin-top: 25px;
+        }
+        .cta-link a {
+            display: inline-block;
+            background-color: hsl(272, 57%, 95%);
+            color: hsl(290, 34%, 10%);
+            text-decoration: none;
+            border-radius: 5px;
+            border: 2px solid hsl(290, 34%, 10%);
+            padding: 10px 25px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .cta-link a:hover {
+            background-color: hsl(272, 57%, 85%);
+        }
+        .fn-bold {
+            font-weight: 600;
+        }
+        .secondary-text {
+            color: #999;
+            font-size: 13px;
+        }
+        h2 {
+            color: hsl(290, 34%, 10%);
+            margin-top: 0;
+        }
+        p {
+            color: #333;
+            line-height: 1.6;
+        }
+        .highlight {
+            background-color: #FFF3CD;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="img-container" align="center">
+        <a href="https://www.moonkeyeu.com/">
+            <img th:alt="${appName}" src="https://cdn.moonkeyeu.com/media/assets/logo/moonkeyeu-logo-transparent.png" alt="MoonkeyEU" width="100" height="100">
+        </a>
+        <h2 class="heading" th:text="${appName}">MoonkeyEU</h2>
+    </div>
+    <div class="details-container">
+        <div class="warning-icon">
+            <div class="warning-circle">!</div>
+        </div>
+
+        <h2>Your Subscription Expires Soon</h2>
+        <p>Hi <span class="fn-bold" th:text="${email}">User</span>,</p>
+
+        <p>Your <span class="fn-bold" th:text="${planName}">Premium</span> subscription is set to expire in <span class="fn-bold" th:text="${daysRemaining}">7</span> days.</p>
+
+        <div class="subscription-details">
+            <div class="detail-row">
+                <span class="detail-label">Plan:</span>
+                <span class="detail-value" th:text="${planName}">Premium</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Expiration Date:</span>
+                <span class="detail-value" th:text="${expirationDate}">January 15, 2025</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Current Billing Cycle:</span>
+                <span class="detail-value" th:text="${billingCycle}">Monthly</span>
+            </div>
+        </div>
+
+        <div class="highlight">
+            <p style="margin: 0;"><span class="fn-bold">Don't lose access!</span> Renew your subscription now to continue enjoying all premium features without interruption.</p>
+        </div>
+
+        <h3 style="color: hsl(290, 34%, 10%);">What Happens Next?</h3>
+        <p>If you don't renew before the expiration date:</p>
+        <ul style="color: #333;">
+            <li>Your premium access will be revoked</li>
+            <li>You'll be downgraded to a free account</li>
+            <li>Some features may become unavailable</li>
+        </ul>
+
+        <div class="cta-link">
+            <a th:href="${renewalUrl}" target="_blank"><span>Renew Now</span></a>
+        </div>
+
+        <br>
+        <p class="secondary-text">
+            You can also manage your subscription or cancel anytime from your account settings.
+        </p>
+
+        <p>Questions? We're here to help!</p>
+
+        <p>Yours sincerely,<br><span class="fn-bold" th:text="|${appName} Team|">MoonkeyEU Team</span></p>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <p class="secondary-text">
+            This is an automated email. Please do not reply to this message. If you have any questions, visit our <a href="https://www.moonkeyeu.com/contact" style="color: hsl(272, 57%, 65%); text-decoration: none;">contact form</a>.
+        </p>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+.env
+.my.cnf
+.idea
+db
+db-prod
+data
+backup-data
+appmap.yml
+jwt-keys/access-token/*
+jwt-keys/refresh-token/*
+!jwt-keys/.gitkeep
+target/*
