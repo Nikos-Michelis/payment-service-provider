@@ -7,7 +7,6 @@ import com.stripe.payment_service_provider.payment.model.StripePaymentMethod;
 import com.stripe.payment_service_provider.payment.service.StripeAccountService;
 import com.stripe.payment_service_provider.payment.util.CustomerUtil;
 import com.stripe.payment_service_provider.payment.util.PortalSessionUtil;
-import com.stripe.payment_service_provider.settings.exceptions.stripe.CustomerNotFoundException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.net.RequestOptions;
@@ -30,7 +29,7 @@ public class AccountServiceImpl implements StripeAccountService {
     @Override
     public SessionResponseDTO getStripeAccountSettings(String email, String idempotencyKey) throws StripeException {
         Customer stripeCustomer = customerUtil.findCustomerByEmail(email)
-                .orElseThrow(() -> new CustomerNotFoundException("Customer does not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("Customer does not found with email: " + email));
 
         String stripeCustomerId = stripeCustomer.getId();
 
@@ -45,7 +44,7 @@ public class AccountServiceImpl implements StripeAccountService {
     @Override
     public PaymentMethodDTO getDefaultPaymentMethod(StripeCustomer stripeCustomer) {
         if (stripeCustomer == null) {
-            throw new CustomerNotFoundException("Customer does not exist");
+            throw new ResourceNotFoundException("Customer does not exist");
         }
 
         if (stripeCustomer.getStripePaymentMethods() == null) {

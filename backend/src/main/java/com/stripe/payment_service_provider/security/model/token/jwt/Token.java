@@ -12,7 +12,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "token", schema = "moonkey_db")
+@Table(name = "token")
 @EqualsAndHashCode(of = "id",  callSuper = false)
 public class Token extends BaseEntity {
     @Id

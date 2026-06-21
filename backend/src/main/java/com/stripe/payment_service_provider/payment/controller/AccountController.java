@@ -1,7 +1,6 @@
 package com.stripe.payment_service_provider.payment.controller;
 
 import com.stripe.payment_service_provider.payment.dto.InvoiceDTO;
-import com.stripe.payment_service_provider.payment.dto.PaymentMethodDTO;
 import com.stripe.payment_service_provider.payment.dto.payment.SessionResponseDTO;
 import com.stripe.payment_service_provider.payment.service.StripeAccountService;
 import com.stripe.exception.StripeException;
@@ -18,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/stripe/account")
 @RequiredArgsConstructor
-public class StripeAccountController {
+public class AccountController {
 
     private final StripeAccountService stripeAccountService;
     private final StripeInvoiceService stripeInvoiceService;

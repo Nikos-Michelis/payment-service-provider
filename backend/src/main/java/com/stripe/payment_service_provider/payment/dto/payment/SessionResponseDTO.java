@@ -14,6 +14,8 @@ public record SessionResponseDTO(
         String sessionId,
         @JsonProperty("session_url")
         String sessionUrl,
+        @JsonProperty("session_type")
+        String sessionType,
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssX", timezone = "UTC")
         @JsonProperty("created_at")
         Instant createdAt

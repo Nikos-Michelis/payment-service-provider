@@ -1,8 +1,9 @@
 package com.stripe.payment_service_provider.payment.scheduled;
 
+import com.stripe.payment_service_provider.payment.mappers.StripeSubscriptionObjectMapper;
 import com.stripe.payment_service_provider.subscription.model.StripePlan;
 import com.stripe.payment_service_provider.subscription.model.UserSubscription;
-import com.stripe.payment_service_provider.payment.dto.StripeSubscriptionDTO;
+import com.stripe.payment_service_provider.payment.dto.SubscriptionDTO;
 import com.stripe.payment_service_provider.payment.service.StripeSubscriptionService;
 import com.stripe.payment_service_provider.payment.util.CustomerUtil;
 import com.stripe.payment_service_provider.payment.util.ProductUtil;
@@ -39,6 +40,7 @@ public class SubscriptionReconciliationScheduled {
     private final SubscriptionUtil subscriptionUtil;
     private final ProductUtil productUtil;
     private final CustomerUtil customerUtil;
+    private final StripeSubscriptionObjectMapper stripeSubscriptionObjectMapper;
 
     //@Scheduled(cron = "0 */1 * * * *")
     @Transactional
@@ -62,8 +64,8 @@ public class SubscriptionReconciliationScheduled {
                 User user = unsubscribedUserMap.get(customer.get().getEmail());
                 Product product = productUtil.getProductBySubscription(subscription);
                 StripePlan stripePlan = getSubscriptionPlanById(product.getId());
-                StripeSubscriptionDTO stripeSubscriptionDTO = getStripeSubscriptionDTO(subscription);
-                subscriptionService.createOrUpdate(user.getStripeCustomer(), stripeSubscriptionDTO, stripePlan);
+                SubscriptionDTO subscriptionDTO = getStripeSubscriptionDTO(subscription);
+                subscriptionService.createOrUpdate(user.getStripeCustomer(), subscriptionDTO, stripePlan);
             }
         }
         log.info("Subscription validation for unsubscribed users completed");
@@ -100,8 +102,8 @@ public class SubscriptionReconciliationScheduled {
 
             if (currentStripePlanId.equals(product.getId())) {
                 StripePlan stripePlan = getSubscriptionPlanById(product.getId());
-                StripeSubscriptionDTO stripeSubscriptionDTO = getStripeSubscriptionDTO(subscription);
-                subscriptionService.createOrUpdate(user.getStripeCustomer(), stripeSubscriptionDTO, stripePlan);
+                SubscriptionDTO subscriptionDTO = getStripeSubscriptionDTO(subscription);
+                subscriptionService.createOrUpdate(user.getStripeCustomer(), subscriptionDTO, stripePlan);
             }
         }
 
@@ -119,15 +121,15 @@ public class SubscriptionReconciliationScheduled {
 
     private StripePlan getSubscriptionPlanById(String planId) {
         return planRepository.findSubscriptionPlanByStripeProductId(planId)
-                .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Plan not found with id: " + planId));
     }
 
-    private StripeSubscriptionDTO getStripeSubscriptionDTO(Subscription subscription) {
-        return StripeSubscriptionDTO.builder()
-                .stripeSubscriptionId(subscription.getId())
-                .status(SubscriptionStatus.valueOf(subscription.getStatus().toUpperCase()))
-                .currentPeriodStart(Instant.ofEpochMilli(subscription.getStartDate()))
-                .currentPeriodEnd(Instant.ofEpochMilli(subscription.getEndedAt()))
-                .build();
+    private SubscriptionDTO getStripeSubscriptionDTO(Subscription subscription) {
+        return new SubscriptionDTO(
+                subscription.getId(),
+                SubscriptionStatus.valueOf(subscription.getStatus().toUpperCase()),
+                Instant.ofEpochSecond(subscription.getStartDate()),
+                Instant.ofEpochSecond(subscription.getEndedAt())
+        );
     }
 }

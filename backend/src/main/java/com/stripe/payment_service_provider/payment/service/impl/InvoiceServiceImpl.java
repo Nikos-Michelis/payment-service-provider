@@ -3,7 +3,7 @@ package com.stripe.payment_service_provider.payment.service.impl;
 import com.stripe.payment_service_provider.payment.model.StripeInvoice;
 import com.stripe.payment_service_provider.payment.dto.InvoiceDTO;
 import com.stripe.payment_service_provider.payment.dto.payment.PaymentRequestDTO;
-import com.stripe.payment_service_provider.payment.repository.StripeInvoiceRepository;
+import com.stripe.payment_service_provider.payment.repository.InvoiceRepository;
 import com.stripe.payment_service_provider.payment.service.StripeInvoiceService;
 import com.stripe.payment_service_provider.utils.DtoConverter;
 import lombok.RequiredArgsConstructor;
@@ -18,11 +18,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InvoiceServiceImpl implements StripeInvoiceService {
     private final DtoConverter dtoConverter;
-    private final StripeInvoiceRepository stripeInvoiceRepository;
+    private final InvoiceRepository invoiceRepository;
 
     @Override
     public List<InvoiceDTO> getAllInvoices(PaymentRequestDTO requestDTO) {
-        List<StripeInvoice> stripeInvoice = stripeInvoiceRepository.findAll();
+        List<StripeInvoice> stripeInvoice = invoiceRepository.findAll();
         return stripeInvoice
                 .stream()
                 .map(invoice -> dtoConverter.convertToDto(invoice, InvoiceDTO.class))
@@ -31,7 +31,7 @@ public class InvoiceServiceImpl implements StripeInvoiceService {
 
     @Override
     public List<InvoiceDTO> getAllByCustomerId(String customerId) {
-        List<StripeInvoice> stripeInvoice = stripeInvoiceRepository.findStripeInvoiceBySubscription_StripeCustomer_StripeCustomerId(customerId)
+        List<StripeInvoice> stripeInvoice = invoiceRepository.findStripeInvoiceBySubscription_StripeCustomer_StripeCustomerId(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Stripe invoice not found for Customer Id: " + customerId));
         return stripeInvoice
                 .stream()

@@ -9,7 +9,6 @@ import com.stripe.payment_service_provider.payment.util.ProductUtil;
 import com.stripe.payment_service_provider.payment.util.SubscriptionUtil;
 import com.stripe.payment_service_provider.subscription.repository.PlanRepository;
 import com.stripe.payment_service_provider.products.repository.ProductRepository;
-import com.stripe.payment_service_provider.payment.dto.StripeSessionDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -59,15 +58,4 @@ public class PaymentServiceImpl {
 
         return session.getUrl();
     }*/
-
-    private void saveStripeSession(StripeCustomer stripeCustomer, StripeSessionDTO session, String idempotencyKey) {
-        CustomerPortal customerPortal = CustomerPortal.builder()
-                .customer(stripeCustomer)
-                .idempotencyKey(idempotencyKey)
-                .sessionId(session.sessionId())
-                .sessionUrl(session.sessionUrl())
-                .build();
-        customerPortalRepository.save(customerPortal);
-    }
-
 }

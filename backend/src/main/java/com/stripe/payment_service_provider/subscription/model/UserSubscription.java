@@ -37,14 +37,10 @@ public class UserSubscription extends BaseEntity {
     private String stripeSubscriptionId;
     @Column(name = "expiration_reminder_sent")
     private boolean expirationReminderSent;
-    @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "current_period_start")
     private Instant currentPeriodStart;
-    @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "current_period_end")
     private Instant currentPeriodEnd;
-    @Version
-    private Integer version;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "plan_id", nullable = false)

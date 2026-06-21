@@ -4,8 +4,9 @@ import com.stripe.model.PaymentMethod;
 import com.stripe.payment_service_provider.payment.model.StripeCustomer;
 import com.stripe.payment_service_provider.payment.model.StripePaymentMethod;
 import com.stripe.payment_service_provider.payment.repository.PaymentMethodRepository;
-import com.stripe.payment_service_provider.payment.repository.StripeCustomerRepository;
+import com.stripe.payment_service_provider.payment.repository.CustomerRepository;
 import com.stripe.payment_service_provider.payment.service.StripePaymentMethodService;
+import com.stripe.payment_service_provider.settings.exceptions.common.ConflictException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -18,19 +19,19 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PaymentMethodServiceImpl implements StripePaymentMethodService {
     private final PaymentMethodRepository paymentMethodRepository;
-    private final StripeCustomerRepository  stripeCustomerRepository;
+    private final CustomerRepository customerRepository;
 
     @Override
     @Transactional
     public StripePaymentMethod addPaymentMethod(PaymentMethod paymentMethod) {
 
-        StripeCustomer stripeCustomer = stripeCustomerRepository.findStripeCustomerByStripeCustomerId(paymentMethod.getCustomer())
+        StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByStripeCustomerId(paymentMethod.getCustomer())
                 .orElseThrow(() -> new ResourceNotFoundException("Stripe customer not found"));
 
         Optional<StripePaymentMethod> stripePaymentMethod = paymentMethodRepository.findStripePaymentMethodByPaymentMethodIdAndCustomerId(paymentMethod.getCard().getFingerprint(), stripeCustomer.getCustomerId());
 
         if (stripePaymentMethod.isPresent()) {
-            throw new RuntimeException("Stripe payment method already assign");
+            throw new ConflictException("Stripe payment method already assign");
         }
 
         setDefaultPaymentMethod(stripeCustomer.getCustomerId());
@@ -59,5 +60,20 @@ public class PaymentMethodServiceImpl implements StripePaymentMethodService {
         }
 
         paymentMethodRepository.saveAll(stripePaymentMethod);
+    }
+
+    @Override
+    @Transactional
+    public StripePaymentMethod removePaymentMethod(PaymentMethod paymentMethod) {
+
+        StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByStripeCustomerId(paymentMethod.getCustomer())
+                .orElseThrow(() -> new ResourceNotFoundException("Stripe customer not found"));
+
+        StripePaymentMethod stripePaymentMethod = paymentMethodRepository.findStripePaymentMethodByPaymentMethodIdAndCustomerId(paymentMethod.getCard().getFingerprint(), stripeCustomer.getCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Payment method not found"));
+
+        stripePaymentMethod.setIsDefault(false);
+
+        return paymentMethodRepository.save(stripePaymentMethod);
     }
 }

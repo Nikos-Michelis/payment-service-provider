@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/webhook")
 @RequiredArgsConstructor
-public class StripeWebhookController {
+public class WebhookController {
     @Value("${application.api.stripe.webhook.key}")
     private String endpointSecret;
     private final StripeWebhookHandler stripeWebhookHandler;

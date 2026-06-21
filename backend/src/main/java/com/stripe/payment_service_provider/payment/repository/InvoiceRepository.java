@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface StripeInvoiceRepository extends JpaRepository<StripeInvoice, String> {
+public interface InvoiceRepository extends JpaRepository<StripeInvoice, String> {
     Optional<List<StripeInvoice>> findStripeInvoiceBySubscription_StripeCustomer_StripeCustomerId(String customerId);
     Optional<StripeInvoice> findStripeInvoiceByInvoiceStripeId(String invoiceStripeId);
 }

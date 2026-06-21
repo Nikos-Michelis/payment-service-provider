@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/stripe/payment")
-public class StripePaymentController {
+public class PaymentController {
 
     /*@PostMapping("/subscription/new")
     public ResponseEntity<?> createSubscription(

@@ -21,13 +21,6 @@ import java.util.stream.Collectors;
 @Component
 public class SubscriptionUtil {
 
-    public LineItem buildSubscriptionLineItem(Product product) {
-        return SessionCreateParams.LineItem.builder()
-                .setQuantity(1L)
-                .setPrice(product.getDefaultPrice())
-                .build();
-    }
-
     public Optional<Subscription> getSubscriptionByStatusAndCustomer(String customerId, EnumSet<SubscriptionStatus> statuses) throws StripeException {
         SubscriptionListParams params = buildSubscriptionListParams("ALL", 10L)
                 .setCustomer(customerId)
@@ -50,6 +43,13 @@ public class SubscriptionUtil {
                 .stream()
                 .sorted((o1, o2) -> Long.compare(o2.getCreated(), o1.getCreated()))
                 .toList();
+    }
+
+    public LineItem buildSubscriptionLineItem(Product product) {
+        return SessionCreateParams.LineItem.builder()
+                .setQuantity(1L)
+                .setPrice(product.getDefaultPrice())
+                .build();
     }
 
     public SubscriptionListParams.Builder buildSubscriptionListParams(String status, long limit) {

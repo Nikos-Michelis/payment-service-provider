@@ -4,11 +4,11 @@ import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 @Getter
-public class StripeException extends RuntimeException {
+public class CustomStripeException extends RuntimeException {
     private final HttpStatus status;
     private final String title;
 
-    public StripeException(String title, String message, HttpStatus status) {
+    public CustomStripeException(String title, String message, HttpStatus status) {
         super(message);
         this.status = status;
         this.title = title;

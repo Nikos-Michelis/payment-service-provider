@@ -3,7 +3,7 @@ package com.stripe.payment_service_provider.email.service.impl;
 import com.stripe.payment_service_provider.email.EmailTemplateName;
 import com.stripe.payment_service_provider.email.service.SubscriptionEmailService;
 import com.stripe.payment_service_provider.subscription.model.UserSubscription;
-import com.stripe.payment_service_provider.payment.dto.email.SubscriptionRenewalContext;
+import com.stripe.payment_service_provider.payment.dto.email.SubscriptionEmailContext;
 import com.stripe.model.Invoice;
 import com.stripe.payment_service_provider.utils.DateTimeUtil;
 import lombok.RequiredArgsConstructor;
@@ -28,121 +28,121 @@ public class SubscriptionEmailServiceImpl implements SubscriptionEmailService {
     private static final String CONTACT_URL = "https://www.moonkeyeu.com/contact";
     private final EmailSenderServiceImpl emailSenderService;
 
-    public void sendSubscriptionSuccessEmail(String email, UserSubscription subscription, Invoice invoice) {
+    public void sendSubscriptionSuccessEmail(SubscriptionEmailContext subscriptionEmailContext) {
          try {
              Map<String, Object> properties = new HashMap<>();
              properties.put("appName", appName);
-             properties.put("email", email);
-             properties.put("planName", subscription.getStripePlan().getName());
-             properties.put("billingCycle", subscription.getStripePlan().getBillingCycle());
-             properties.put("amount", invoice.getAmountPaid());
-             properties.put("currency", invoice.getCurrency());
-             properties.put("invoiceUrl", invoice.getInvoicePdf());
-             properties.put("renewalDate", formatDate(subscription.getCurrentPeriodEnd()));
-             properties.put("dashboardUrl", frontendUrl + "/dashboard");
+             properties.put("email", subscriptionEmailContext.getEmail());
+             properties.put("planName", subscriptionEmailContext.getPlanName());
+             properties.put("billingCycle", subscriptionEmailContext);
+             properties.put("amount", subscriptionEmailContext.getAmount());
+             properties.put("currency", subscriptionEmailContext.getCurrency());
+             properties.put("invoiceUrl", subscriptionEmailContext.getInvoicePdf());
+             properties.put("renewalDate", formatDate(subscriptionEmailContext.getAccessEndDate()));
+             properties.put("redirectUrl", frontendUrl + "/profile");
 
              emailSenderService.sendEmail(
-                     email,
+                     subscriptionEmailContext.getEmail(),
                      "Welcome to "  + appName +" Premium!",
                      EmailTemplateName.CREATE_SUBSCRIPTION,
                      properties
              );
 
-             log.info("Subscription success email sent to: {}", email);
+             log.info("Subscription success email sent to: {}", subscriptionEmailContext.getEmail());
          } catch (Exception e) {
-             log.error("Failed to send subscription success email to: {}", email, e);
+             log.error("Failed to send subscription success email to: {}", subscriptionEmailContext.getEmail(), e);
          }
     }
 
-    public void sendSubscriptionUpdateEmail(String email, UserSubscription subscription, String previousPlanName) {
+    public void sendSubscriptionUpdateEmail(SubscriptionEmailContext subscriptionEmailContext) {
         try {
             Map<String, Object> properties = new HashMap<>();
             properties.put("appName", appName);
-            properties.put("email", email);
-            properties.put("planName", subscription.getStripePlan().getName());
-            properties.put("previousPlanName", previousPlanName);
-            properties.put("effectiveDate", formatDate(Instant.now()));
-            properties.put("billingCycle", subscription.getStripePlan().getBillingCycle());
+            properties.put("email", subscriptionEmailContext.getEmail());
+            properties.put("planName", subscriptionEmailContext.getPlanName());
+            properties.put("previousPlanName", subscriptionEmailContext.getPrevPlanName());
+            properties.put("effectiveDate", formatDate(subscriptionEmailContext.getAccessStartDate()));
+            properties.put("billingCycle", subscriptionEmailContext.getBillingCycle());
             properties.put("dashboardUrl", frontendUrl + "/dashboard");
 
             emailSenderService.sendEmail(
-                    email,
+                    subscriptionEmailContext.getEmail(),
                     "Your " + appName + " Subscription has been Upgraded!",
                     EmailTemplateName.UPDATE_SUBSCRIPTION,
                     properties
             );
 
-            log.info("Subscription upgrade email sent to: {}", email);
+            log.info("Subscription upgrade email sent to: {}", subscriptionEmailContext.getEmail());
         } catch (Exception e) {
-            log.error("Failed to send subscription upgrade email to: {}", email, e);
+            log.error("Failed to send subscription upgrade email to: {}", subscriptionEmailContext.getEmail(), e);
         }
     }
 
-    public void sendSubscriptionExpirationNotification(String email, UserSubscription subscription) {
+    public void sendSubscriptionExpirationNotification( SubscriptionEmailContext subscriptionEmailContext) {
         try {
-            long daysRemaining = ChronoUnit.DAYS.between(Instant.now(), subscription.getCurrentPeriodEnd());
+            long daysRemaining = ChronoUnit.DAYS.between(Instant.now(), subscriptionEmailContext.getAccessEndDate());
             Map<String, Object> properties = new HashMap<>();
             properties.put("appName", appName);
-            properties.put("email", email);
-            properties.put("planName", subscription.getStripePlan().getName());
+            properties.put("email", subscriptionEmailContext.getEmail());
+            properties.put("planName", subscriptionEmailContext.getPlanName());
             properties.put("daysRemaining", daysRemaining);
-            properties.put("expirationDate", formatDate(subscription.getCurrentPeriodEnd()));
-            properties.put("billingCycle", subscription.getStripePlan().getBillingCycle());
+            properties.put("accessEndDate", formatDate(subscriptionEmailContext.getAccessEndDate()));
+            properties.put("billingCycle", subscriptionEmailContext.getBillingCycle());
             properties.put("renewalUrl", frontendUrl + "/dashboard/billing");
 
             emailSenderService.sendEmail(
-                    email,
+                    subscriptionEmailContext.getEmail(),
                     "Your Subscription Expires in " + daysRemaining + " Days",
                     EmailTemplateName.NOTIFICATION_SUBSCRIPTION,
                     properties
             );
 
-            log.info("Subscription expiration notification sent to: {}", email);
+            log.info("Subscription expiration notification sent to: {}", subscriptionEmailContext.getEmail());
         } catch (Exception e) {
-            log.error("Failed to send subscription expiration email to: {}", email, e);
+            log.error("Failed to send subscription expiration email to: {}", subscriptionEmailContext.getEmail(), e);
         }
     }
 
     /**
      * Send subscription cancelled email
      */
-    public void sendSubscriptionCancelledEmail(String email, UserSubscription subscription) {
+    public void sendSubscriptionCancelledEmail(SubscriptionEmailContext subscriptionEmailContext) {
         try {
             Map<String, Object> properties = new HashMap<>();
             properties.put("appName", appName);
-            properties.put("email", email);
-            properties.put("planName", subscription.getStripePlan().getName());
+            properties.put("email", subscriptionEmailContext.getEmail());
+            properties.put("planName", subscriptionEmailContext.getPlanName());
             properties.put("cancellationDate", formatDate(Instant.now()));
-            properties.put("accessEndDate", formatDate(subscription.getCurrentPeriodEnd()));
+            properties.put("accessEndDate", formatDate(subscriptionEmailContext.getAccessEndDate()));
             properties.put("dashboardUrl", frontendUrl + "/dashboard");
 
             emailSenderService.sendEmail(
-                    email,
+                    subscriptionEmailContext.getEmail(),
                     "Your Subscription Has Been Cancelled",
                     EmailTemplateName.CANCELLED_SUBSCRIPTION,
                     properties
             );
 
-            log.info("Subscription cancellation email sent to: {}", email);
+            log.info("Subscription cancellation email sent to: {}", subscriptionEmailContext.getEmail());
         } catch (Exception e) {
-            log.error("Failed to send subscription cancellation email to: {}", email, e);
+            log.error("Failed to send subscription cancellation email to: {}", subscriptionEmailContext.getEmail(), e);
         }
     }
 
-    public void sendSubscriptionRenewalEmail(SubscriptionRenewalContext context) {
+    public void sendSubscriptionRenewalEmail(SubscriptionEmailContext context) {
         try {
             // Convert the Context to a Map for Thymeleaf
             Map<String, Object> properties = new HashMap<>();
-            properties.put("appName", context.getAppName());
+            properties.put("appName", appName);
             properties.put("email", context.getEmail());
             properties.put("planName", context.getPlanName());
-            properties.put("renewalDate", context.getRenewalDate());
-            properties.put("nextBillingDate", context.getNextBillingDate());
+            properties.put("renewalDate", context.getAccessStartDate());
+            properties.put("nextBillingDate", context.getAccessEndDate());
             properties.put("billingCycle", context.getBillingCycle());
             properties.put("amount", context.getAmount());
-            properties.put("invoiceUrl", context.getInvoiceUrl());
+            properties.put("invoicePdf", context.getInvoicePdf());
             properties.put("paymentMethod", context.getPaymentMethod());
-            properties.put("dashboardUrl", context.getDashboardUrl());
+            properties.put("dashboardUrl", frontendUrl + "/dashboard");
 
             emailSenderService.sendEmail(
                     context.getEmail(),

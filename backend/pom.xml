@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.stripe</groupId>
-	<artifactId>payment-service-provider</artifactId>
+	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
 	<description/>
@@ -34,6 +34,7 @@
         <bucket4j.version>8.14.0</bucket4j.version>
         <ua-parse.version>1.5.4</ua-parse.version>
         <modelmapper.version>2.4.4</modelmapper.version>
+		<mapstruct.version>1.6.3</mapstruct.version>
 	</properties>
 	<dependencies>
         <dependency>
@@ -104,6 +105,13 @@
             <artifactId>modelmapper</artifactId>
             <version>${modelmapper.version}</version>
         </dependency>
+		<!-- MapStruct -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+			<scope>compile</scope>
+		</dependency>
         <!-- Email SMTP -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

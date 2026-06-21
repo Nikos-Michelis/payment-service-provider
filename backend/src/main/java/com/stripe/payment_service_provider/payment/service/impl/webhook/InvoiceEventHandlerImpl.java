@@ -1,20 +1,19 @@
 package com.stripe.payment_service_provider.payment.service.impl.webhook;
 
-import com.stripe.exception.StripeException;
 import com.stripe.model.*;
-import com.stripe.param.InvoiceRetrieveParams;
 import com.stripe.payment_service_provider.email.service.SubscriptionEmailService;
+import com.stripe.payment_service_provider.payment.dto.email.SubscriptionEmailContext;
 import com.stripe.payment_service_provider.payment.model.*;
 import com.stripe.payment_service_provider.payment.repository.PaymentMethodRepository;
-import com.stripe.payment_service_provider.payment.repository.TransactionRepository;
+import com.stripe.payment_service_provider.payment.repository.PaymentRepository;
+import com.stripe.payment_service_provider.payment.util.InvoiceUtil;
+import com.stripe.payment_service_provider.payment.util.PriceUtil;
 import com.stripe.payment_service_provider.subscription.model.StripePlan;
 import com.stripe.payment_service_provider.subscription.model.UserSubscription;
 import com.stripe.payment_service_provider.subscription.repository.PlanRepository;
-import com.stripe.payment_service_provider.payment.repository.StripeCustomerRepository;
+import com.stripe.payment_service_provider.payment.repository.CustomerRepository;
 import com.stripe.payment_service_provider.payment.service.StripeInvoiceEventHandler;
 import com.stripe.payment_service_provider.subscription.service.impl.UserSubscriptionServiceImpl;
-import com.stripe.payment_service_provider.settings.exceptions.stripe.CustomerNotFoundException;
-import com.stripe.payment_service_provider.user.model.User;
 import com.stripe.payment_service_provider.user.reporitory.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,41 +28,45 @@ import java.time.Instant;
 @Service
 @RequiredArgsConstructor
 public class InvoiceEventHandlerImpl implements StripeInvoiceEventHandler {
-    private final StripeCustomerRepository stripeCustomerRepository;
     private final SubscriptionEmailService subscriptionEmailService;
     private final PaymentMethodRepository paymentMethodRepository;
-    private final TransactionRepository transactionRepository;
+    private final CustomerRepository customerRepository;
+    private final PaymentRepository paymentRepository;
     private final UserSubscriptionServiceImpl subscriptionService;
     private final PlanRepository planRepository;
     private final UserRepository userRepository;
+    private final InvoiceUtil invoiceUtil;
+    private final PriceUtil priceUtil;
 
     @Override
     public void handleUpcomingInvoice(Invoice invoice) {
-        User user = userRepository.findByCustomerId(invoice.getCustomer())
-                .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
+        StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByStripeCustomerId(invoice.getCustomer())
+                .orElseThrow(() -> new ResourceNotFoundException("No customer found with id: " + invoice.getCustomer()));
 
-        UserSubscription userSubscription = subscriptionService.getActiveUserSubscription(user.getStripeCustomer().getSubscriptions())
+        UserSubscription userSubscription = subscriptionService.getActiveUserSubscription(stripeCustomer.getSubscriptions())
                 .orElseThrow(() -> new ResourceNotFoundException("user subscriptions not found"));
 
-        subscriptionEmailService.sendSubscriptionExpirationNotification(
-                user.getEmail(),
-                userSubscription
-        );
+        SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
+                .email(stripeCustomer.getEmail())
+                .planName(userSubscription.getStripePlan().getName())
+                .billingCycle(userSubscription.getPrice().getBilingCycle())
+                .accessStartDate(userSubscription.getCurrentPeriodEnd())
+                .build();
+
+        subscriptionEmailService.sendSubscriptionExpirationNotification(subscriptionEmailContext);
     }
 
     @Transactional
     @Override
-    public void handleInvoicePaymentUpdate(Invoice invoice) throws StripeException {
+    public void handleInvoicePaymentUpdate(Invoice invoice) {
         String billingReason = invoice.getBillingReason();
         String customerId = invoice.getCustomer();
 
-        InvoiceRetrieveParams params = InvoiceRetrieveParams.builder()
-                .addExpand("payments.data.payment.payment_intent").build();
-        Invoice expandedInvoice = Invoice.retrieve(invoice.getId(), params, null);
+        Invoice retrivedInvoice = invoiceUtil.getInvoiceById(invoice.getId());
 
-        PaymentIntent paymentIntent = expandedInvoice.getPayments().getData().getFirst().getPayment().getPaymentIntentObject();
+        PaymentIntent paymentIntent = invoiceUtil.getPaymentIntentObjectFromInvoice(retrivedInvoice);
 
-        StripeCustomer stripeCustomer = stripeCustomerRepository.findStripeCustomerByStripeCustomerId(customerId)
+        StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByStripeCustomerId(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("No customer found with id: " + invoice.getCustomer()));
 
         StripePaymentMethod stripePaymentMethod = paymentMethodRepository.findPaymentMethodByStripePaymentMethodId(paymentIntent.getPaymentMethod())
@@ -85,17 +88,23 @@ public class InvoiceEventHandlerImpl implements StripeInvoiceEventHandler {
                 UserSubscription userSubscription = subscriptionService.getSubscriptionBySubscriptionId(subscriptionId);
 
                 StripeInvoice stripeInvoice = buildStripeInvoice(invoice, userSubscription, billingReason);
-
                 StripePayment stripePayment = buildPayment(paymentIntent, stripeInvoice, stripeCustomer, stripePaymentMethod);
-                transactionRepository.save(stripePayment);
+                paymentRepository.save(stripePayment);
 
-                subscriptionEmailService.sendSubscriptionSuccessEmail(
-                        stripeCustomer.getEmail(),
-                        userSubscription,
-                        invoice
-                );
+                SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
+                        .email(stripeCustomer.getEmail())
+                        .planName(userSubscription.getStripePlan().getName())
+                        .billingCycle(userSubscription.getPrice().getBilingCycle())
+                        .amount(invoice.getAmountPaid())
+                        .currency(invoice.getCurrency())
+                        .invoicePdf(invoice.getInvoicePdf())
+                        .accessStartDate(userSubscription.getCurrentPeriodEnd())
+                        .build();
+
+                subscriptionEmailService.sendSubscriptionSuccessEmail(subscriptionEmailContext);
                 break;
             }
+
             case "subscription_update": {
                 String productId = invoice.getLines().getData().getFirst().getPricing().getPriceDetails().getProduct();
                 String subscriptionId = invoice.getParent().getSubscriptionDetails().getSubscription();
@@ -106,20 +115,33 @@ public class InvoiceEventHandlerImpl implements StripeInvoiceEventHandler {
                         .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
 
                 StripeInvoice stripeInvoice = buildStripeInvoice(invoice, userSubscription, billingReason);
-
                 StripePayment stripePayment = buildPayment(paymentIntent, stripeInvoice, stripeCustomer, stripePaymentMethod);
-                transactionRepository.save(stripePayment);
 
-                subscriptionEmailService.sendSubscriptionUpdateEmail(
-                        stripeCustomer.getEmail(),
-                        userSubscription,
-                        stripePlan.getName()
-                );
+                paymentRepository.save(stripePayment);
+
+                SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
+                        .email(stripeCustomer.getEmail())
+                        .planName(stripePlan.getName())
+                        .previousPlanName(userSubscription.getStripePlan().getName())
+                        .billingCycle(userSubscription.getPrice().getBilingCycle())
+                        .accessStartDate(invoice.getEffectiveAt())
+                        .build();
+
+                subscriptionEmailService.sendSubscriptionUpdateEmail(subscriptionEmailContext);
                 break;
             }
 
             case "subscription_cycle": {
-              /* subscriptionEmailService.sendSubscriptionRenewalEmail(
+
+                /*SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
+                        .email(stripeCustomer.getEmail())
+                        .planName(stripePlan.getName())
+                        .previousPlanName(userSubscription.getStripePlan().getName())
+                        .billingCycle(userSubscription.getPrice().getBilingCycle())
+                        .accessStartDate(invoice.getEffectiveAt())
+                        .build();
+
+                subscriptionEmailService.sendSubscriptionRenewalEmail(
                         customerEmail,
                         userSubscription,
                         invoice
@@ -133,6 +155,38 @@ public class InvoiceEventHandlerImpl implements StripeInvoiceEventHandler {
             }
 
         }
+    }
+
+
+    public void handleNewSubscriptionInvoice(Invoice invoice) {
+        PaymentIntent paymentIntent = invoiceUtil.getPaymentIntentObjectFromInvoice(invoice);
+
+        StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByStripeCustomerId(invoice.getCustomer())
+                .orElseThrow(() -> new ResourceNotFoundException("No customer found with id: " + invoice.getCustomer()));
+
+        StripePaymentMethod stripePaymentMethod = paymentMethodRepository.findPaymentMethodByStripePaymentMethodId(paymentIntent.getPaymentMethod())
+                .orElseThrow(() -> new ResourceNotFoundException("PaymentMethod not found " +  paymentIntent.getPaymentMethod()));
+
+        String subscriptionId = invoice.getParent().getSubscriptionDetails().getSubscription();
+
+        UserSubscription userSubscription = subscriptionService.getSubscriptionBySubscriptionId(subscriptionId);
+
+        StripeInvoice stripeInvoice = buildStripeInvoice(invoice, userSubscription, invoice.getBillingReason());
+        StripePayment stripePayment = buildPayment(paymentIntent, stripeInvoice, stripeCustomer, stripePaymentMethod);
+        paymentRepository.save(stripePayment);
+
+        SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
+                .email(stripeCustomer.getEmail())
+                .planName(userSubscription.getStripePlan().getName())
+                .billingCycle(userSubscription.getPrice().getBilingCycle())
+                .amount(invoice.getAmountPaid())
+                .currency(invoice.getCurrency())
+                .invoicePdf(invoice.getInvoicePdf())
+                .accessStartDate(userSubscription.getCurrentPeriodEnd())
+                .build();
+
+        subscriptionEmailService.sendSubscriptionSuccessEmail(subscriptionEmailContext);
+
     }
 
     private StripeInvoice buildStripeInvoice(Invoice invoice, UserSubscription userSubscription, String billingReason) {
@@ -149,12 +203,7 @@ public class InvoiceEventHandlerImpl implements StripeInvoiceEventHandler {
                 .build();
     }
 
-    private StripePayment buildPayment(
-            PaymentIntent paymentIntent,
-            StripeInvoice stripeInvoice,
-            StripeCustomer stripeCustomer,
-            StripePaymentMethod stripePaymentMethod
-    ) {
+    private StripePayment buildPayment(PaymentIntent paymentIntent, StripeInvoice stripeInvoice, StripeCustomer stripeCustomer, StripePaymentMethod stripePaymentMethod) {
         return StripePayment.builder()
                 .customer(stripeCustomer)
                 .paymentIntentId(paymentIntent.getId())
@@ -162,7 +211,7 @@ public class InvoiceEventHandlerImpl implements StripeInvoiceEventHandler {
                 .paymentMethod(stripePaymentMethod)
                 .amountPaid(BigDecimal.valueOf(paymentIntent.getAmount()))
                 .currency(paymentIntent.getCurrency().toUpperCase())
-                .status(PaymentStatus.SUCCEEDED)
+                .status(PaymentStatus.valueOf(paymentIntent.getStatus().toUpperCase()))
                 .build();
     }
 }

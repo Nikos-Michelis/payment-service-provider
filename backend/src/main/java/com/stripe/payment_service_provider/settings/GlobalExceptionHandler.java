@@ -1,9 +1,11 @@
 package com.stripe.payment_service_provider.settings;
 
+import com.stripe.exception.StripeException;
 import com.stripe.payment_service_provider.settings.exceptions.auth.*;
 import com.stripe.payment_service_provider.settings.exceptions.common.ConflictException;
 import com.stripe.payment_service_provider.settings.exceptions.common.RemoteServiceUnavailableException;
 import jakarta.mail.MessagingException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -265,6 +267,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ExceptionResponse> handleException(RemoteServiceUnavailableException exp) {
         return ResponseEntity
                 .status(SERVICE_UNAVAILABLE)
+                .body(ExceptionResponse.builder()
+                        .businessErrorCode(UNAVAILABLE_REMOTE_API.getCode())
+                        .businessErrorDescription(UNAVAILABLE_REMOTE_API.getDescription())
+                        .error(exp.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(StripeException.class)
+    public ResponseEntity<ExceptionResponse> handleStripeException(StripeException exp) {
+        return ResponseEntity
+                .status(HttpStatus.valueOf(exp.getStatusCode()))
                 .body(ExceptionResponse.builder()
                         .businessErrorCode(UNAVAILABLE_REMOTE_API.getCode())
                         .businessErrorDescription(UNAVAILABLE_REMOTE_API.getDescription())

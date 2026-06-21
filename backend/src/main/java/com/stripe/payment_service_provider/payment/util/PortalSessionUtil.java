@@ -15,7 +15,7 @@ public class PortalSessionUtil {
     @Value("${application.frontend.url}")
     private String clientBaseURL;
 
-    public Session createPortalSession(SessionCreateParams sessionCreateParams, RequestOptions requestOptions) throws StripeSessionException  {
+    public Session createPortalSession(SessionCreateParams sessionCreateParams, RequestOptions requestOptions) throws StripeSessionException {
         try {
             return Session.create(sessionCreateParams, requestOptions);
         } catch (StripeException e) {

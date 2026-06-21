@@ -1,6 +1,6 @@
 package com.stripe.payment_service_provider.payment.util;
 
-import com.stripe.payment_service_provider.payment.repository.StripeCustomerRepository;
+import com.stripe.payment_service_provider.payment.repository.CustomerRepository;
 import com.stripe.payment_service_provider.payment.model.StripeCustomer;
 import com.stripe.payment_service_provider.user.model.User;
 import com.stripe.payment_service_provider.user.reporitory.UserRepository;
@@ -20,7 +20,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CustomerUtil {
     private final UserRepository userRepository;
-    private final StripeCustomerRepository stripeCustomerRepository;
+    private final CustomerRepository customerRepository;
+
+
 
     public Optional<Customer> findCustomerByCustomerId(String customerId) throws StripeException {
         return Optional.ofNullable(Customer.retrieve(customerId));
@@ -49,12 +51,12 @@ public class CustomerUtil {
             CustomerCreateParams customerCreateParams = CustomerCreateParams.builder().setEmail(email).build();
             Customer newCustomer = Customer.create(customerCreateParams);
             StripeCustomer stripeCustomer = getStripeCustomer(newCustomer, user);
-            return stripeCustomerRepository.save(stripeCustomer);
+            return customerRepository.save(stripeCustomer);
         }
 
         if (user.getStripeCustomer() == null) {
             StripeCustomer stripeCustomer = getStripeCustomer(customer.get(), user);
-            return stripeCustomerRepository.save(stripeCustomer);
+            return customerRepository.save(stripeCustomer);
         }
 
         String existingCustomerId = user.getStripeCustomer().getStripeCustomerId();

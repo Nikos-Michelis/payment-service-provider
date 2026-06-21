@@ -1,6 +1,5 @@
 package com.stripe.payment_service_provider.subscription.service.impl;
 
-import com.stripe.exception.StripeException;
 import com.stripe.model.Price;
 import com.stripe.model.Product;
 import com.stripe.payment_service_provider.subscription.model.BillingCycle;
@@ -14,6 +13,7 @@ import com.stripe.payment_service_provider.subscription.service.PlanService;
 import com.stripe.payment_service_provider.utils.DtoConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +40,7 @@ public class PlanServiceImpl implements PlanService {
     @Transactional
     public void deletePlan(Product product) {
         StripePlan stripePlan = planRepository.findSubscriptionPlanByStripeProductId(product.getId())
-                .orElseThrow(() -> new RuntimeException("Plan not found for product id: " + product.getId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Plan not found for product id: " + product.getId()));
         planRepository.delete(stripePlan);
     }
 
@@ -65,7 +65,7 @@ public class PlanServiceImpl implements PlanService {
                 .orElseGet(StripePrice::new);
 
         StripePlan stripePlan = planRepository.findSubscriptionPlanByStripeProductId(price.getProduct())
-                .orElseThrow(() -> new RuntimeException("Plan not found for product id: " + price.getProduct()));
+                .orElseThrow(() -> new ResourceNotFoundException("Plan not found for product id: " + price.getProduct()));
 
         stripePrice.setStripePlan(stripePlan);
         stripePrice.setStripePriceId(price.getId());

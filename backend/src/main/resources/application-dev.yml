@@ -26,7 +26,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create-drop
       naming:
         physical-strategy:
           - org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
@@ -109,6 +109,9 @@ application:
           update-id: ${STRIPE_HOSTED_CONFIG_UPDATE}
           cancel-id: ${STRIPE_HOSTED_CONFIG_CANCEL}
           account-management-id: ${STRIPE_HOSTED_CONFIG_ACCOUNT}
+        redirect:
+          success: ${DOMAIN_URL//billing/success:http://localhost:3001//billing/success}
+          cancel: ${DOMAIN_URL//billing/cancel:http://localhost:3001//billing/cancel}
 
 server:
   port: 8081

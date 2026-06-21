@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface StripeCustomerRepository extends JpaRepository<StripeCustomer, String> {
+public interface CustomerRepository extends JpaRepository<StripeCustomer, String> {
     Optional<StripeCustomer> findStripeCustomerByStripeCustomerId(String stripeCustomerId);
     Optional<StripeCustomer> findStripeCustomerByEmail(String email);
 }

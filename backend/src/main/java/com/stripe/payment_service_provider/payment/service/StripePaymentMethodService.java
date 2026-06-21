@@ -7,4 +7,5 @@ import com.stripe.payment_service_provider.payment.model.StripePaymentMethod;
 
 public interface StripePaymentMethodService {
     StripePaymentMethod addPaymentMethod(PaymentMethod paymentMethod) throws StripeException;
+    StripePaymentMethod removePaymentMethod(PaymentMethod paymentMethod) throws StripeException;
 }

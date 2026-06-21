@@ -3,11 +3,11 @@ package com.stripe.payment_service_provider.subscription.service.impl;
 import com.stripe.payment_service_provider.subscription.model.StripePlan;
 import com.stripe.payment_service_provider.subscription.model.SubscriptionStatus;
 import com.stripe.payment_service_provider.subscription.service.UserSubscriptionService;
-import com.stripe.payment_service_provider.settings.exceptions.subscription.SubscriptionNotFoundException;
 import com.stripe.payment_service_provider.payment.model.StripeCustomer;
-import com.stripe.payment_service_provider.payment.dto.StripeSubscriptionDTO;
+import com.stripe.payment_service_provider.payment.dto.SubscriptionDTO;
 import com.stripe.payment_service_provider.subscription.model.UserSubscription;
 import com.stripe.payment_service_provider.subscription.repository.SubscriptionRepository;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +25,9 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
         this.subscriptionRepository = subscriptionRepository;
     }
 
-    public UserSubscription getSubscriptionBySubscriptionId(String stripeSubscriptionId) throws SubscriptionNotFoundException {
+    public UserSubscription getSubscriptionBySubscriptionId(String stripeSubscriptionId) throws ResourceNotFoundException {
         return subscriptionRepository.findUserSubscriptionsByStripeSubscriptionId(stripeSubscriptionId)
-                .orElseThrow(() -> new SubscriptionNotFoundException("Subscription not found " +  stripeSubscriptionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found " +  stripeSubscriptionId));
     }
 
     @Override
@@ -39,15 +39,15 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
 
     @Override
     @Transactional
-    public UserSubscription createOrUpdate(StripeCustomer stripeCustomer, StripeSubscriptionDTO stripeSubscriptionDTO, StripePlan stripePlan) {
+    public UserSubscription createOrUpdate(StripeCustomer stripeCustomer, SubscriptionDTO subscriptionDTO, StripePlan stripePlan) {
        UserSubscription userSubscription = subscriptionRepository.findUserSubscriptionsByStripeCustomer_StripeCustomerId(stripeCustomer.getStripeCustomerId())
                 .orElseGet(() -> UserSubscription.builder().stripeCustomer(stripeCustomer).build());
 
         userSubscription.setStripePlan(stripePlan);
-        userSubscription.setStatus(SubscriptionStatus.valueOf(stripeSubscriptionDTO.getStatus().name().toUpperCase()));
-        userSubscription.setStripeSubscriptionId(stripeSubscriptionDTO.getStripeSubscriptionId());
-        userSubscription.setCurrentPeriodStart(stripeSubscriptionDTO.getCurrentPeriodStart());
-        userSubscription.setCurrentPeriodEnd(stripeSubscriptionDTO.getCurrentPeriodEnd());
+        userSubscription.setStatus(SubscriptionStatus.valueOf(subscriptionDTO.getStatus().name().toUpperCase()));
+        userSubscription.setStripeSubscriptionId(subscriptionDTO.getStripeSubscriptionId());
+        userSubscription.setCurrentPeriodStart(subscriptionDTO.getCurrentPeriodStart());
+        userSubscription.setCurrentPeriodEnd(subscriptionDTO.getCurrentPeriodEnd());
         //subscription.getPlan().setTkResetHoursInterval(request.getTokenResetMinutesInterval());
         return subscriptionRepository.save(userSubscription);
     }

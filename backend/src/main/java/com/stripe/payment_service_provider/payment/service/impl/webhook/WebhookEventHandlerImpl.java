@@ -1,14 +1,14 @@
 package com.stripe.payment_service_provider.payment.service.impl.webhook;
 
 import com.stripe.model.Product;
+import com.stripe.payment_service_provider.payment.dto.email.SubscriptionEmailContext;
 import com.stripe.payment_service_provider.payment.model.StripeCustomer;
 import com.stripe.payment_service_provider.payment.service.StripePaymentMethodService;
 import com.stripe.payment_service_provider.subscription.model.UserSubscription;
-import com.stripe.payment_service_provider.payment.repository.StripeCustomerRepository;
+import com.stripe.payment_service_provider.payment.repository.CustomerRepository;
 import com.stripe.payment_service_provider.subscription.service.PlanService;
 import com.stripe.payment_service_provider.payment.service.StripeWebhookHandler;
 import com.stripe.payment_service_provider.payment.service.StripeInvoiceEventHandler;
-import com.stripe.payment_service_provider.settings.exceptions.stripe.CustomerNotFoundException;
 import com.stripe.payment_service_provider.email.service.SubscriptionEmailService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @RequiredArgsConstructor
 public class WebhookEventHandlerImpl implements StripeWebhookHandler {
-    private final StripeCustomerRepository stripeCustomerRepository;
+    private final CustomerRepository customerRepository;
     private final SubscriptionEventHandlerImpl subscriptionEventHandlerImpl;
     private final StripeInvoiceEventHandler stripeInvoiceEventHandler;
     private final SubscriptionEmailService subscriptionEmailService;
@@ -41,15 +41,23 @@ public class WebhookEventHandlerImpl implements StripeWebhookHandler {
             case "customer.subscription.deleted": {
                 Subscription subscription = handleSubscriptionEvent(event);
                 UserSubscription deletedUserSubscription = subscriptionEventHandlerImpl.handleSubscriptionCancellation(subscription);
-                subscriptionEmailService.sendSubscriptionCancelledEmail(deletedUserSubscription.getStripeCustomer().getEmail(), deletedUserSubscription);
+
+                SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
+                        .email(deletedUserSubscription.getStripeCustomer().getEmail())
+                        .planName(deletedUserSubscription.getStripePlan().getName())
+                        .accessEndDate(deletedUserSubscription.getCurrentPeriodEnd())
+                        .build();
+
+
+                subscriptionEmailService.sendSubscriptionCancelledEmail(subscriptionEmailContext);
                 break;
             }
 
             case "customer.deleted": {
                 Customer customer = handleCustomerEvent(event);
-                StripeCustomer stripeCustomer = stripeCustomerRepository.findStripeCustomerByStripeCustomerId(customer.getId())
-                        .orElseThrow(() -> new CustomerNotFoundException("No customer found with id: " + customer.getId()));
-                stripeCustomerRepository.delete(stripeCustomer);
+                StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByStripeCustomerId(customer.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("No customer found with id: " + customer.getId()));
+                customerRepository.delete(stripeCustomer);
                 break;
             }
 
@@ -67,7 +75,6 @@ public class WebhookEventHandlerImpl implements StripeWebhookHandler {
 
             case "product.created", "product.updated": {
                 Product product = handleProductEvent(event);
-                System.out.println(product);
                 planService.createOrUpdatePlan(product);
                 break;
             }
@@ -80,7 +87,6 @@ public class WebhookEventHandlerImpl implements StripeWebhookHandler {
 
             case "price.created", "price.updated": {
                 Price price = handlePriceEvent(event);
-                System.out.println(price);
                 planService.createOrUpdatePrice(price);
                 break;
             }
@@ -93,6 +99,7 @@ public class WebhookEventHandlerImpl implements StripeWebhookHandler {
 
             case "payment_method.detached": {
                 PaymentMethod paymentMethod = handlePaymentMethodEvent(event);
+                stripePaymentMethodService.removePaymentMethod(paymentMethod);
                 break;
             }
 
