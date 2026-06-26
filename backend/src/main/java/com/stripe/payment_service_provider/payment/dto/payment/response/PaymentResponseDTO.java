@@ -1,4 +1,4 @@
-package com.stripe.payment_service_provider.payment.dto.payment;
+package com.stripe.payment_service_provider.payment.dto.payment.response;
 
 import com.stripe.payment_service_provider.payment.model.InvoiceStatus;
 import com.stripe.payment_service_provider.subscription.model.BillingCycle;

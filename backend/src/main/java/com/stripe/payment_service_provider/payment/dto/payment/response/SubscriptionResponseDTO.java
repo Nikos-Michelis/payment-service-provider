@@ -1,4 +1,4 @@
-package com.stripe.payment_service_provider.payment.dto.payment;
+package com.stripe.payment_service_provider.payment.dto.payment.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.stripe.payment_service_provider.payment.dto.PaymentMethodDTO;

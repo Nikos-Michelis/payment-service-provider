@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,7 @@ public class PlanServiceImpl implements PlanService {
         List<StripePlan> subscriptionStripePlan = planRepository.findAll();
         return subscriptionStripePlan
                 .stream()
+                .sorted(Comparator.comparing(StripePlan::getTokenLimit))
                 .map(plan -> dtoConverter.convertToDto(plan, PlanDTO.class))
                 .collect(Collectors.toList());
     }
@@ -70,6 +72,7 @@ public class PlanServiceImpl implements PlanService {
         stripePrice.setStripePlan(stripePlan);
         stripePrice.setStripePriceId(price.getId());
         stripePrice.setAmount(price.getUnitAmountDecimal());
+        stripePrice.setCurrency(price.getCurrency());
         stripePrice.setBillingCycle(BillingCycle.valueOf(price.getRecurring().getInterval().toUpperCase()));
         stripePrice.setActive(price.getActive());
 
@@ -77,7 +80,7 @@ public class PlanServiceImpl implements PlanService {
 
     }
 
-    private StripePlan populatePlanMetaData(StripePlan subscriptionStripePlan, Product product) {
+    public StripePlan populatePlanMetaData(StripePlan subscriptionStripePlan, Product product) {
         if (product.getMetadata() == null) {
             throw new RuntimeException("Product metadata are missing");
         }

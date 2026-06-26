@@ -2,9 +2,9 @@ package com.stripe.payment_service_provider.payment.service.impl;
 
 import com.stripe.model.Product;
 import com.stripe.payment_service_provider.payment.dto.PaymentMethodDTO;
-import com.stripe.payment_service_provider.payment.dto.payment.PaymentResponseDTO;
-import com.stripe.payment_service_provider.payment.dto.payment.SessionResponseDTO;
-import com.stripe.payment_service_provider.payment.dto.payment.SubscriptionResponseDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.response.PaymentResponseDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.response.SessionResponseDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.response.SubscriptionResponseDTO;
 import com.stripe.payment_service_provider.payment.model.CustomerPortal;
 import com.stripe.payment_service_provider.payment.model.StripeCustomer;
 import com.stripe.payment_service_provider.payment.model.StripePaymentMethod;
@@ -17,10 +17,9 @@ import com.stripe.payment_service_provider.payment.repository.CustomerPortalRepo
 import com.stripe.payment_service_provider.payment.util.*;
 import com.stripe.payment_service_provider.settings.exceptions.auth.SessionNotFoundException;
 import com.stripe.payment_service_provider.subscription.repository.PlanRepository;
-import com.stripe.payment_service_provider.payment.dto.payment.PaymentRequestDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.request.SubscriptionRequestDTO;
 import com.stripe.payment_service_provider.payment.service.StripeSubscriptionService;
 import com.stripe.payment_service_provider.subscription.model.StripePlan;
-import com.stripe.payment_service_provider.user.model.User;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
 import com.stripe.model.checkout.Session;
@@ -33,7 +32,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,10 +48,8 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
     private final SubscriptionUtil subscriptionUtil;
     private final CheckoutSessionUtil checkoutSessionUtil;
     private final PortalSessionUtil portalSessionUtil;
-    private final UserDetailsService userDetailsService;
     private final CustomerUtil customerUtil;
     private final ProductUtil productUtil;
-    private final PriceUtil priceUtil;
     private final PlanRepository planRepository;
     private final CustomerPortalRepository customerPortalRepository;
     private final CustomerRepository customerRepository;
@@ -85,7 +81,7 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
 
     @Override
     @Transactional
-    public SessionResponseDTO createSubscription(PaymentRequestDTO paymentRequest, String email, String idempotencyKey) throws StripeException {
+    public SessionResponseDTO createSubscription(SubscriptionRequestDTO paymentRequest, String email, String idempotencyKey) throws StripeException {
         Optional<CustomerPortal> customerPortal = customerPortalRepository.findCustomerPortalByIdempotencyKey(idempotencyKey);
         if (customerPortal.isPresent()) {
             return new SessionResponseDTO(
@@ -102,7 +98,7 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
         StripePlan stripePlan = planRepository.findSubscriptionPlanByStripeProductId(paymentRequest.productId())
                 .orElseThrow(() -> new ResourceNotFoundException("Not found any plan with the provided id " +  paymentRequest.productId()));
 
-        StripePrice stripePrice = priceUtil.getPriceFromPlanAvailablePrices(stripePlan.getPrices(), paymentRequest.productId());
+        StripePrice stripePrice = productUtil.getPriceFromPlanAvailablePrices(stripePlan.getPrices(), paymentRequest.priceId());
 
         Optional<Subscription> subscription = subscriptionUtil.getSubscriptionByStatusAndCustomer(
                 stripeCustomer.getStripeCustomerId(), EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING));
@@ -112,7 +108,7 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
         }
 
         SessionCreateParams.Builder paramsBuilder = checkoutSessionUtil.buildCheckoutSession(SessionCreateParams.Mode.SUBSCRIPTION, stripeCustomerId);
-        Product product = productUtil.buildStripeProduct(stripePlan, stripePrice);
+        Product product = productUtil.buildStripePlan(stripePlan, stripePrice);
 
         SessionCreateParams.LineItem lineItem = subscriptionUtil.buildSubscriptionLineItem(product);
         paramsBuilder.addLineItem(lineItem);
@@ -122,13 +118,13 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
         Session session = checkoutSessionUtil.createCheckoutSession(sessionCreateParams, requestOptions);
 
         SessionResponseDTO sessionResponseDTO = new SessionResponseDTO(session.getId(), session.getUrl(), session.getObject(), Instant.ofEpochSecond(session.getCreated()));
-        saveStripeSession(stripeCustomer, sessionResponseDTO, idempotencyKey);
+        saveSession(stripeCustomer, sessionResponseDTO, idempotencyKey);
 
         return sessionResponseDTO;
     }
 
     @Override
-    public SessionResponseDTO updateSubscription(PaymentRequestDTO paymentRequest, String email, String idempotencyKey) throws StripeException {
+    public SessionResponseDTO updateSubscription(SubscriptionRequestDTO paymentRequest, String email, String idempotencyKey) throws StripeException {
         Optional<CustomerPortal> customerPortal = customerPortalRepository.findCustomerPortalByIdempotencyKey(idempotencyKey);
         if (customerPortal.isPresent()) {
             return new SessionResponseDTO(
@@ -139,23 +135,23 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
             );
         }
 
-        User user = (User) userDetailsService.loadUserByUsername(email);
-        String stripeCustomerId = user.getStripeCustomer().getStripeCustomerId();
+        StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
         StripePlan stripePlan = planRepository.findSubscriptionPlanByStripeProductId(paymentRequest.productId())
                 .orElseThrow(() -> new ResourceNotFoundException("Not found any plan with the provided id " +  paymentRequest.productId()));
 
         Subscription subscription =
-                subscriptionUtil.getSubscriptionByStatusAndCustomer(stripeCustomerId, EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING))
+                subscriptionUtil.getSubscriptionByStatusAndCustomer(stripeCustomer.getStripeCustomerId(), EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING))
                         .orElseThrow(() -> new ConflictException("User does not have any active subscription."));
         String subscriptionItemId = subscription.getItems().getData().getFirst().getId();
 
-        StripePrice stripePrice = priceUtil.getPriceFromPlanAvailablePrices(stripePlan.getPrices(), paymentRequest.productId());
+        StripePrice stripePrice = productUtil.getPriceFromPlanAvailablePrices(stripePlan.getPrices(), paymentRequest.productId());
 
         SubscriptionUpdateConfirm subscriptionUpdateConfirm =
                 portalSessionUtil.getSubscriptionUpdateConfirm(subscription.getId(), subscriptionItemId, stripePrice.getStripePriceId());
 
-        Builder paramsBuilder = portalSessionUtil.buildPortalSessionParams(stripeCustomerId);
+        Builder paramsBuilder = portalSessionUtil.buildPortalSessionParams(stripeCustomer.getStripeCustomerId());
         paramsBuilder.setConfiguration(UPDATE_PORTAL_CONFIG);
         paramsBuilder.setFlowData(
                 portalSessionUtil.buildPortalSessionFlow(FlowData.Type.SUBSCRIPTION_UPDATE_CONFIRM, FRONTEND_SUCCESS_URL)
@@ -166,7 +162,7 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
         RequestOptions requestOptions = portalSessionUtil.getIdempotencyKey(idempotencyKey);
         com.stripe.model.billingportal.Session session = portalSessionUtil.createPortalSession(paramsBuilder.build(), requestOptions);
         SessionResponseDTO sessionResponseDTO = new SessionResponseDTO(session.getId(), session.getUrl(), session.getObject(), Instant.ofEpochSecond(session.getCreated()));
-        saveStripeSession(user.getStripeCustomer(), sessionResponseDTO, idempotencyKey);
+        saveSession(stripeCustomer, sessionResponseDTO, idempotencyKey);
 
         return sessionResponseDTO;
     }
@@ -205,17 +201,17 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
             );
         }
 
-        User user = (User) userDetailsService.loadUserByUsername(email);
-        String stripeCustomerId = user.getStripeCustomer().getStripeCustomerId();
+        StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User does not have any active subscription."));
 
         Subscription subscription =
-                subscriptionUtil.getSubscriptionByStatusAndCustomer(stripeCustomerId, EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING))
+                subscriptionUtil.getSubscriptionByStatusAndCustomer(stripeCustomer.getStripeCustomerId(), EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING))
                         .orElseThrow(() -> new ConflictException("User does not have any active subscription."));
 
         FlowData.SubscriptionCancel SubscriptionCancel =
                 portalSessionUtil.getSubscriptionCancelConfirm(subscription.getId());
 
-        Builder paramsBuilder = portalSessionUtil.buildPortalSessionParams(stripeCustomerId);
+        Builder paramsBuilder = portalSessionUtil.buildPortalSessionParams(stripeCustomer.getStripeCustomerId());
         paramsBuilder.setConfiguration(CANCEL_PORTAL_CONFIG);
         paramsBuilder.setFlowData(
                 portalSessionUtil.buildPortalSessionFlow(FlowData.Type.SUBSCRIPTION_CANCEL, FRONTEND_CANCEL_URL)
@@ -226,7 +222,7 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
         RequestOptions requestOptions = portalSessionUtil.getIdempotencyKey(idempotencyKey);
         com.stripe.model.billingportal.Session session = portalSessionUtil.createPortalSession(paramsBuilder.build(), requestOptions);
         SessionResponseDTO sessionResponseDTO = new SessionResponseDTO(session.getId(), session.getUrl(), session.getObject(), Instant.ofEpochSecond(session.getCreated()));
-        saveStripeSession(user.getStripeCustomer(), sessionResponseDTO, idempotencyKey);
+        saveSession(stripeCustomer, sessionResponseDTO, idempotencyKey);
 
         return sessionResponseDTO;
     }
@@ -238,7 +234,7 @@ public class SubscriptionServiceImpl implements StripeSubscriptionService {
 
     }
 
-    private void saveStripeSession(StripeCustomer stripeCustomer, SessionResponseDTO session, String idempotencyKey) {
+    private void saveSession(StripeCustomer stripeCustomer, SessionResponseDTO session, String idempotencyKey) {
         CustomerPortal customerPortal = CustomerPortal.builder()
                 .customer(stripeCustomer)
                 .idempotencyKey(idempotencyKey)

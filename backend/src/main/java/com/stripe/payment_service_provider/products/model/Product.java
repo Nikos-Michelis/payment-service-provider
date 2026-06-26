@@ -1,5 +1,6 @@
 package com.stripe.payment_service_provider.products.model;
 
+import com.stripe.payment_service_provider.auditing.model.BaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -13,6 +14,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
@@ -20,27 +23,31 @@ import java.util.UUID;
 @Entity
 @Table(name = "products")
 @EntityListeners(AuditingEntityListener.class)
-public class Product {
+public class Product extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
+    @Column(name = "product_id", nullable = false)
     private Long id;
 
-    @UuidGenerator(style = UuidGenerator.Style.TIME)
-    @Column(nullable = false, unique = true, updatable = false)
-    private UUID uuid;
+    @Size(max = 36)
+    @NotNull
+    @Column(name = "uuid", nullable = false, length = 36)
+    private String uuid;
 
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
+    @Column(name = "external_id", nullable = false)
+    private Long externalId;
+
+    @Column(name = "category_id")
+    private Long categoryId;
 
     @Size(max = 255)
     @NotNull
-    @Column(name = "name", nullable = false)
-    private String name;
+    @Column(name = "title", nullable = false)
+    private String title;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "description")
     private String description;
 
     @Size(max = 100)
@@ -48,7 +55,8 @@ public class Product {
     private String brand;
 
     @Size(max = 100)
-    @Column(name = "sku", length = 100)
+    @NotNull
+    @Column(name = "sku", nullable = false, length = 100)
     private String sku;
 
     @NotNull
@@ -56,27 +64,66 @@ public class Product {
     private BigDecimal price;
 
     @NotNull
+    @ColumnDefault("0.00")
+    @Column(name = "discount_percentage", nullable = false, precision = 5, scale = 2)
+    private BigDecimal discountPercentage;
+
+    @NotNull
+    @ColumnDefault("0.00")
+    @Column(name = "rating", nullable = false, precision = 3, scale = 2)
+    private BigDecimal rating;
+
+    @NotNull
     @ColumnDefault("0")
     @Column(name = "stock", nullable = false)
     private Integer stock;
 
-    @Size(max = 500)
-    @Column(name = "image_url", length = 500)
-    private String imageUrl;
+    @Column(name = "weight", precision = 10, scale = 2)
+    private BigDecimal weight;
+
+    @Size(max = 255)
+    @Column(name = "warranty_information")
+    private String warrantyInformation;
+
+    @Size(max = 255)
+    @Column(name = "shipping_information")
+    private String shippingInformation;
+
+    @Size(max = 50)
+    @Column(name = "availability_status", length = 50)
+    private String availabilityStatus;
+
+    @Size(max = 255)
+    @Column(name = "return_policy")
+    private String returnPolicy;
 
     @NotNull
     @ColumnDefault("1")
-    @Column(name = "active", nullable = false)
-    private Boolean active = false;
+    @Column(name = "minimum_order_quantity", nullable = false)
+    private Integer minimumOrderQuantity;
 
-    @NotNull
-    @CreatedDate
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+    @Size(max = 100)
+    @Column(name = "barcode", length = 100)
+    private String barcode;
 
-    @NotNull
-    @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    @Size(max = 500)
+    @Column(name = "qr_code_url", length = 500)
+    private String qrCodeUrl;
+
+    @Size(max = 500)
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
+
+    @OneToMany(mappedBy = "product")
+    private Set<OrderLine> orderLines = new LinkedHashSet<>();
+
+    @OneToOne(mappedBy = "product")
+    private ProductDimension productDimension;
+
+    @OneToMany(mappedBy = "product")
+    private Set<ProductImage> productImages = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "product")
+    private Set<ProductReview> productReviews = new LinkedHashSet<>();
 
 }

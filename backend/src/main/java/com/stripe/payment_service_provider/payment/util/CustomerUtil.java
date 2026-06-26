@@ -22,12 +22,6 @@ public class CustomerUtil {
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
 
-
-
-    public Optional<Customer> findCustomerByCustomerId(String customerId) throws StripeException {
-        return Optional.ofNullable(Customer.retrieve(customerId));
-    }
-
     public Optional<Customer> findCustomerByEmail(String email) throws StripeException {
         CustomerSearchParams params =
                 CustomerSearchParams

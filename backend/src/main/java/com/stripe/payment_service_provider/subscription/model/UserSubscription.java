@@ -45,6 +45,11 @@ public class UserSubscription extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "plan_id", nullable = false)
     private StripePlan stripePlan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "price_id", nullable = false)
+    private StripePrice stripePrice;
+
     @ManyToOne(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH } )
     @JoinColumn(name = "customer_id", nullable = false)
     private StripeCustomer stripeCustomer;

@@ -1,6 +1,7 @@
 package com.stripe.payment_service_provider.subscription.model;
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
 import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -36,7 +37,7 @@ public class StripePlan extends BaseEntity {
     @Column(name = "description", nullable = false, length = 25)
     private String description;
     @Enumerated(EnumType.STRING)
-    @Column(name = "plan", nullable = false)
+    @Column(name = "type", nullable = false)
     private PlanType planType;
 
     @NotNull
@@ -59,7 +60,7 @@ public class StripePlan extends BaseEntity {
     @BatchSize(size = 20)
     private List<UserSubscription> userSubscriptions = new ArrayList<>();
 
-    @OneToMany(mappedBy = "stripePlan")
+    @OneToMany(mappedBy = "stripePlan",  cascade = {CascadeType.PERSIST, CascadeType.MERGE,  CascadeType.REFRESH})
+    @BatchSize(size = 20)
     private Set<StripePrice> prices = new LinkedHashSet<>();
-
 }

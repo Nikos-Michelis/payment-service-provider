@@ -12,7 +12,6 @@ import java.util.Optional;
 
 @Repository
 public interface PaymentMethodRepository extends JpaRepository<StripePaymentMethod, Long> {
-    Optional<StripePaymentMethod> findPaymentMethodByFingerprint(String fingerprint);
     Optional<StripePaymentMethod> findPaymentMethodByStripePaymentMethodId(String paymentMethodId);
     @Query("""
         SELECT pm
@@ -22,5 +21,4 @@ public interface PaymentMethodRepository extends JpaRepository<StripePaymentMeth
     """)
     Optional<StripePaymentMethod> findStripePaymentMethodByPaymentMethodIdAndCustomerId(@Param("fingerprint") String fingerprint, @Param("customerId") Long customerId);
     List<StripePaymentMethod> findAllByCustomer_CustomerId(Long customerId);
-    List<StripePaymentMethod> findAllByCustomer_CustomerId(String customerId);
 }

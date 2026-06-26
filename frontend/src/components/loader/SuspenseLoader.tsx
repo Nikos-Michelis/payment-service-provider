@@ -5,10 +5,10 @@ interface CardContentProps {
     children: ReactNode;
 }
 
-const ContentLoader = ({fallbackComponent, children,}: CardContentProps) => (
+const SuspenseLoader = ({fallbackComponent, children,}: CardContentProps) => (
     <Suspense fallback={fallbackComponent}>
         {children}
     </Suspense>
 );
 
-export default ContentLoader;
+export default SuspenseLoader;

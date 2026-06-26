@@ -2,7 +2,7 @@ package com.stripe.payment_service_provider.payment.service.impl;
 
 import com.stripe.payment_service_provider.payment.model.StripeInvoice;
 import com.stripe.payment_service_provider.payment.dto.InvoiceDTO;
-import com.stripe.payment_service_provider.payment.dto.payment.PaymentRequestDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.request.SubscriptionRequestDTO;
 import com.stripe.payment_service_provider.payment.repository.InvoiceRepository;
 import com.stripe.payment_service_provider.payment.service.StripeInvoiceService;
 import com.stripe.payment_service_provider.utils.DtoConverter;
@@ -21,7 +21,7 @@ public class InvoiceServiceImpl implements StripeInvoiceService {
     private final InvoiceRepository invoiceRepository;
 
     @Override
-    public List<InvoiceDTO> getAllInvoices(PaymentRequestDTO requestDTO) {
+    public List<InvoiceDTO> getAllInvoices(SubscriptionRequestDTO requestDTO) {
         List<StripeInvoice> stripeInvoice = invoiceRepository.findAll();
         return stripeInvoice
                 .stream()

@@ -4,6 +4,7 @@ import {keepPreviousData, useQuery} from "@tanstack/react-query";
 
 interface RequestOptions {
     withCredentials?: boolean;
+    withXSRFToken?: boolean;
     Csrf?: boolean;
 }
 

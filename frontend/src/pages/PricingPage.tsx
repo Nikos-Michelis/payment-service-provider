@@ -1,32 +1,15 @@
-import React, {useState} from 'react';
+import React, {Suspense, useState} from 'react';
 import {Zap} from 'lucide-react';
 import {Badge} from '@/components/ui/badge.tsx';
 import {Switch} from '@/components/ui/switch.tsx';
 import {Label} from '@/components/ui/label.tsx';
-import PlanCard from "@/components/cards/PlanCard.tsx";
-import {useSimpleQuery} from "@/services/queries.ts";
-import ContentLoader from "@/components/loader/ContentLoader.tsx";
 import SpinnerLoader from "@/components/loader/SpinnerLoader.tsx";
-
-const BASE_URL  = import.meta.env.VITE_BACKEND_BASE_URL;
-const PLANS_URL = `${BASE_URL}/public/plans`
+import PlanList from "@/components/list/PlanList.tsx";
+import SuspenseLoader from "@/components/loader/SuspenseLoader.tsx";
 
 
 const PricingPage: React.FC = () => {
-    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-
-    const planQueryData = useSimpleQuery({
-        url: `${PLANS_URL}`,
-        params: `plans`,
-        cacheKey: "plans",
-        queryOptions: {
-            suspense: true
-        },
-        enableBoundary: false
-    });
-
-    const plans = planQueryData?.data ?? [];
-
+    const [billingCycle, setBillingCycle] = useState<'MONTH' | 'YEAR'>('MONTH')
 
     return (
         <div className="mx-auto max-w-7xl px-6 py-16">
@@ -49,7 +32,7 @@ const PricingPage: React.FC = () => {
                     <Label
                         htmlFor="billing-toggle"
                         className={
-                            billingCycle === "monthly"
+                            billingCycle === "MONTH"
                                 ? "font-semibold text-foreground"
                                 : "text-muted-foreground"
                         }
@@ -59,16 +42,16 @@ const PricingPage: React.FC = () => {
 
                     <Switch
                         id="billing-toggle"
-                        checked={billingCycle === "yearly"}
+                        checked={billingCycle === "YEAR"}
                         onCheckedChange={(checked) =>
-                            setBillingCycle(checked ? "yearly" : "monthly")
+                            setBillingCycle(checked ? "YEAR" : "MONTH")
                         }
                     />
 
                     <Label
                         htmlFor="billing-toggle"
                         className={
-                            billingCycle === "yearly"
+                            billingCycle === "YEAR"
                                 ? "font-semibold text-foreground"
                                 : "text-muted-foreground"
                         }
@@ -84,17 +67,10 @@ const PricingPage: React.FC = () => {
                     </Label>
                 </div>
             </div>
-
             <div className="mb-16 grid grid-cols-1 gap-8 md:grid-cols-3">
-                <ContentLoader fallbackComponent={<SpinnerLoader/>}>
-                    {plans.map((plan) => (
-                        <PlanCard
-                            key={plan.id}
-                            {...plan}
-                            billingCycle={billingCycle}
-                        />
-                    ))}
-                </ContentLoader>
+                <SuspenseLoader fallbackComponent={<SpinnerLoader />}>
+                    <PlanList billingCycle={billingCycle}/>
+                </SuspenseLoader>
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-8 md:p-12">

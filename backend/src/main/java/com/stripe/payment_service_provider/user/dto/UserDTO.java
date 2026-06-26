@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 
 @Builder
 @Data
@@ -18,7 +19,7 @@ import java.util.Set;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserDTO implements DTOEntity {
     @JsonProperty("id")
-    private Long userId;
+    private UUID userId;
     @JsonProperty("username")
     private String username;
     @JsonProperty("email")

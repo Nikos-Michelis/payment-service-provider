@@ -5,6 +5,7 @@ import com.stripe.payment_service_provider.settings.exceptions.auth.*;
 import com.stripe.payment_service_provider.settings.exceptions.common.ConflictException;
 import com.stripe.payment_service_provider.settings.exceptions.common.RemoteServiceUnavailableException;
 import jakarta.mail.MessagingException;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -95,6 +96,18 @@ public class GlobalExceptionHandler {
                 .body(ExceptionResponse.builder()
                         .businessErrorCode(INVALID_REQUEST_PARAM.getCode())
                         .businessErrorDescription(INVALID_REQUEST_PARAM.getDescription())
+                        .error(exp.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ExceptionResponse> handleException(ResourceNotFoundException exp) {
+        return ResponseEntity
+                .status(NOT_FOUND)
+                .body(ExceptionResponse.builder()
+                        .businessErrorCode(ENTITY_NOT_FOUND.getCode())
+                        .businessErrorDescription(ENTITY_NOT_FOUND.getDescription())
                         .error(exp.getMessage())
                         .build()
                 );

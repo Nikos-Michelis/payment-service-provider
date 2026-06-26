@@ -15,19 +15,19 @@ function App() {
     return (
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
             <AuthProvider>
-                <ThemeProvider>
-                    <BrowserRouter>
-                        <Routes>
-                            <Route element={<PageLayout />}>
-                                <Route path="/" element={<Navigate to="/pricing" replace />}/>
-                                <Route path="/pricing" element={<PricingPage />} />
-                                <Route path="/dashboard" element={<ProtectedRoutes><Layout /><Profile /></ProtectedRoutes>} />
-                                <Route path="/success" element={<CheckoutSuccess />} />
-                            </Route>
-                        </Routes>
-                        <Toaster />
-                    </BrowserRouter>
-                </ThemeProvider>
+                    <ThemeProvider>
+                        <BrowserRouter>
+                            <Routes>
+                                <Route element={<PageLayout />}>
+                                    <Route path="/" element={<Navigate to="/pricing" replace />}/>
+                                    <Route path="/pricing" element={<PricingPage />} />
+                                    <Route path="/dashboard" element={<ProtectedRoutes><Layout /><Profile /></ProtectedRoutes>} />
+                                    <Route path="/success" element={<CheckoutSuccess />} />
+                                </Route>
+                            </Routes>
+                            <Toaster />
+                        </BrowserRouter>
+                    </ThemeProvider>
             </AuthProvider>
         </GoogleOAuthProvider>
     );

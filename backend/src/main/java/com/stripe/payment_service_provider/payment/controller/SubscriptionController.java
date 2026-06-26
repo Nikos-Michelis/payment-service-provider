@@ -1,9 +1,9 @@
 package com.stripe.payment_service_provider.payment.controller;
 
-import com.stripe.payment_service_provider.payment.dto.payment.PaymentResponseDTO;
-import com.stripe.payment_service_provider.payment.dto.payment.PaymentRequestDTO;
-import com.stripe.payment_service_provider.payment.dto.payment.SessionResponseDTO;
-import com.stripe.payment_service_provider.payment.dto.payment.SubscriptionResponseDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.response.PaymentResponseDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.request.SubscriptionRequestDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.response.SessionResponseDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.response.SubscriptionResponseDTO;
 import com.stripe.payment_service_provider.payment.service.StripeSubscriptionService;
 import com.stripe.exception.StripeException;
 import com.stripe.payment_service_provider.user.model.User;
@@ -25,7 +25,7 @@ public class SubscriptionController {
     @PostMapping("/subscription/new")
     public ResponseEntity<?> createSubscription(
             @AuthenticationPrincipal User user,
-            @RequestBody PaymentRequestDTO paymentRequest,
+            @RequestBody SubscriptionRequestDTO paymentRequest,
             @RequestHeader(value="Idempotency-Key") String idempotencyKey
     ) throws StripeException {
         SessionResponseDTO response = stripeSubscriptionService.createSubscription(paymentRequest, user.getEmail(), idempotencyKey);
@@ -35,7 +35,7 @@ public class SubscriptionController {
     @PostMapping("/subscription/upgrade")
     public ResponseEntity<?> upgradeSubscription(
             @AuthenticationPrincipal User user,
-            @RequestBody PaymentRequestDTO paymentRequest,
+            @RequestBody SubscriptionRequestDTO paymentRequest,
             @RequestHeader(value="Idempotency-Key") String idempotencyKey
     ) throws StripeException {
         SessionResponseDTO response = stripeSubscriptionService.updateSubscription(paymentRequest, user.getEmail(), idempotencyKey);

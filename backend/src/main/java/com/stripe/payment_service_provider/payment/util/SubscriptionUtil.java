@@ -45,19 +45,6 @@ public class SubscriptionUtil {
                 .toList();
     }
 
-    public LineItem buildSubscriptionLineItem(Product product) {
-        return SessionCreateParams.LineItem.builder()
-                .setQuantity(1L)
-                .setPrice(product.getDefaultPrice())
-                .build();
-    }
-
-    public SubscriptionListParams.Builder buildSubscriptionListParams(String status, long limit) {
-        return SubscriptionListParams.builder()
-                .setStatus(Status.valueOf(status.toUpperCase()))
-                .setLimit(limit);
-    }
-
     public Long getSubscriptionItemPeriodEnd(Subscription subscription) {
         SubscriptionItemCollection items = subscription.getItems();
         if (items == null) {
@@ -80,4 +67,18 @@ public class SubscriptionUtil {
     public SubscriptionItemCollection getSubscriptionItemCollection(SubscriptionItemListParams subscriptionItemListParams) throws StripeException {
         return SubscriptionItem.list(subscriptionItemListParams);
     }
+
+    public LineItem buildSubscriptionLineItem(Product product) {
+        return SessionCreateParams.LineItem.builder()
+                .setQuantity(1L)
+                .setPrice(product.getDefaultPrice())
+                .build();
+    }
+
+    public SubscriptionListParams.Builder buildSubscriptionListParams(String status, long limit) {
+        return SubscriptionListParams.builder()
+                .setStatus(Status.valueOf(status.toUpperCase()))
+                .setLimit(limit);
+    }
+
 }

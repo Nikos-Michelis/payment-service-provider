@@ -1,7 +1,7 @@
 package com.stripe.payment_service_provider.payment.service.impl;
 
 import com.stripe.payment_service_provider.payment.dto.PaymentMethodDTO;
-import com.stripe.payment_service_provider.payment.dto.payment.SessionResponseDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.response.SessionResponseDTO;
 import com.stripe.payment_service_provider.payment.model.StripeCustomer;
 import com.stripe.payment_service_provider.payment.model.StripePaymentMethod;
 import com.stripe.payment_service_provider.payment.service.StripeAccountService;
@@ -38,7 +38,7 @@ public class AccountServiceImpl implements StripeAccountService {
 
         RequestOptions requestOptions = portalSessionUtil.getIdempotencyKey(idempotencyKey);
         com.stripe.model.billingportal.Session session = portalSessionUtil.createPortalSession(paramsBuilder.build(), requestOptions);
-        return new SessionResponseDTO(session.getId(), session.getUrl(), Instant.ofEpochMilli(session.getCreated()));
+        return new SessionResponseDTO(session.getId(), session.getUrl(), session.getObject(), Instant.ofEpochMilli(session.getCreated()));
     }
 
     @Override

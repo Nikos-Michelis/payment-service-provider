@@ -30,24 +30,28 @@ public class WebhookEventHandlerImpl implements StripeWebhookHandler {
 
     @Override
     public void handleStripeEvent(Event event) throws StripeException {
-        System.out.println(event);
         switch (event.getType()) {
-            case "customer.subscription.created", "customer.subscription.updated": {
+            case "customer.subscription.created": {
                 Subscription subscription = handleSubscriptionEvent(event);
-                subscriptionEventHandlerImpl.handleSubscriptionChange(subscription);
+                subscriptionEventHandlerImpl.handleSubscriptionCreate(subscription);
+                break;
+            }
+
+            case "customer.subscription.updated": {
+                Subscription subscription = handleSubscriptionEvent(event);
+                subscriptionEventHandlerImpl.handleSubscriptionUpdate(subscription);
                 break;
             }
 
             case "customer.subscription.deleted": {
                 Subscription subscription = handleSubscriptionEvent(event);
-                UserSubscription deletedUserSubscription = subscriptionEventHandlerImpl.handleSubscriptionCancellation(subscription);
+                UserSubscription deletedUserSubscription = subscriptionEventHandlerImpl.handleSubscriptionCancel(subscription);
 
                 SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
                         .email(deletedUserSubscription.getStripeCustomer().getEmail())
                         .planName(deletedUserSubscription.getStripePlan().getName())
                         .accessEndDate(deletedUserSubscription.getCurrentPeriodEnd())
                         .build();
-
 
                 subscriptionEmailService.sendSubscriptionCancelledEmail(subscriptionEmailContext);
                 break;
@@ -63,7 +67,7 @@ public class WebhookEventHandlerImpl implements StripeWebhookHandler {
 
             case "invoice.payment_succeeded", "invoice.payment_failed": {
                 Invoice invoice = handleInvoiceEvent(event);
-                stripeInvoiceEventHandler.handleInvoicePaymentUpdate(invoice);
+                stripeInvoiceEventHandler.handleInvoicePayment(invoice);
                 break;
             }
 

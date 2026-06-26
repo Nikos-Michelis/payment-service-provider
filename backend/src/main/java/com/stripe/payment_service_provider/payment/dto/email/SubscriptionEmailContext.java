@@ -1,5 +1,6 @@
 package com.stripe.payment_service_provider.payment.dto.email;
 
+import com.stripe.payment_service_provider.subscription.model.BillingCycle;
 import lombok.*;
 
 import java.time.Instant;
@@ -13,7 +14,7 @@ public class SubscriptionEmailContext {
     private String email;
     private String planName;
     private String prevPlanName;
-    private String billingCycle;
+    private BillingCycle billingCycle;
     private String redirectUrl;
     private Long amount;
     private String currency;

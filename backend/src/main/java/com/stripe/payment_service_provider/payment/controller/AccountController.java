@@ -1,7 +1,7 @@
 package com.stripe.payment_service_provider.payment.controller;
 
 import com.stripe.payment_service_provider.payment.dto.InvoiceDTO;
-import com.stripe.payment_service_provider.payment.dto.payment.SessionResponseDTO;
+import com.stripe.payment_service_provider.payment.dto.payment.response.SessionResponseDTO;
 import com.stripe.payment_service_provider.payment.service.StripeAccountService;
 import com.stripe.exception.StripeException;
 import com.stripe.payment_service_provider.payment.service.StripeInvoiceService;

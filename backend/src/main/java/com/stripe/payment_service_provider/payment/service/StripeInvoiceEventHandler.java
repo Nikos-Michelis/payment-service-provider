@@ -5,5 +5,5 @@ import com.stripe.model.Invoice;
 
 public interface StripeInvoiceEventHandler {
     void handleUpcomingInvoice(Invoice invoice);
-    void handleInvoicePaymentUpdate(Invoice invoice) throws StripeException;
+    void handleInvoicePayment(Invoice invoice) throws StripeException;
 }

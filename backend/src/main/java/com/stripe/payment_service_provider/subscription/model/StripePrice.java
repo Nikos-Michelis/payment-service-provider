@@ -5,11 +5,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -25,8 +26,7 @@ public class StripePrice extends BaseEntity {
     private Long id;
 
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.ALL)
-    @OnDelete(action = OnDeleteAction.CASCADE)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "plan_id", nullable = false)
     private StripePlan stripePlan;
 
@@ -39,7 +39,11 @@ public class StripePrice extends BaseEntity {
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
-    @Size(max = 45)
+    @Size(max = 3)
+    @NotNull
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "billing_cycle", nullable = false, length = 45)
@@ -47,12 +51,10 @@ public class StripePrice extends BaseEntity {
 
     @NotNull
     @ColumnDefault("0")
-    @Column(name = "is_default", nullable = false)
-    private Boolean isDefault;
-
-    @NotNull
-    @ColumnDefault("0")
     @Column(name = "active", nullable = false)
     private Boolean active;
 
+    @OneToMany(mappedBy = "stripePrice")
+    @BatchSize(size = 20)
+    private List<UserSubscription> userSubscriptions = new ArrayList<>();
 }

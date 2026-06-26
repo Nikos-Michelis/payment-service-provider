@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface PlanRepository extends JpaRepository<StripePlan, Integer> {
+public interface PlanRepository extends JpaRepository<StripePlan, Long> {
     Optional<StripePlan> findSubscriptionPlanByStripeProductId(String id);
 }

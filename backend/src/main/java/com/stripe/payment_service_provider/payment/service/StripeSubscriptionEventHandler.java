@@ -5,6 +5,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
 
 public interface StripeSubscriptionEventHandler {
-    void handleSubscriptionChange(Subscription subscription) throws StripeException;
-    UserSubscription handleSubscriptionCancellation(Subscription subscription);
+    void handleSubscriptionCreate(Subscription subscription) throws StripeException;
+    void handleSubscriptionUpdate(Subscription subscription) throws StripeException;
+    UserSubscription handleSubscriptionCancel(Subscription subscription);
 }
