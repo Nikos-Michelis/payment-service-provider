@@ -1,11 +1,10 @@
 package com.stripe.payment_service_provider.subscription.model;
 
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
-import com.stripe.payment_service_provider.payment.model.StripeCustomer;
-import com.stripe.payment_service_provider.payment.model.StripeInvoice;
+import com.stripe.payment_service_provider.payment.consumer.model.StripeCustomer;
+import com.stripe.payment_service_provider.payment.consumer.model.StripeInvoice;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;

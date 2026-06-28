@@ -33,7 +33,7 @@ public class ProductReview extends BaseEntity {
     private Integer rating;
 
     @Lob
-    @Column(name = "comment")
+    @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;
 
     @Size(max = 255)

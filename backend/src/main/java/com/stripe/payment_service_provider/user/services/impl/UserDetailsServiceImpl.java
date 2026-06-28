@@ -3,7 +3,7 @@ package com.stripe.payment_service_provider.user.services.impl;
 import com.stripe.payment_service_provider.user.model.User;
 import com.stripe.payment_service_provider.user.reporitory.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -17,7 +17,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String userEmail) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(@NonNull String userEmail) throws UsernameNotFoundException {
         return userRepository.findByEmail(userEmail)
                 .filter(User::isEnable)
                 .orElseThrow(() -> new UsernameNotFoundException("Invalid User Credentials."));

@@ -1,12 +1,10 @@
 package com.stripe.payment_service_provider.subscription.service.impl;
 
-import com.stripe.payment_service_provider.payment.dto.SubscriptionItemDTO;
-import com.stripe.payment_service_provider.payment.util.ProductUtil;
+import com.stripe.payment_service_provider.payment.consumer.dto.SubscriptionItemDTO;
 import com.stripe.payment_service_provider.subscription.model.SubscriptionStatus;
-import com.stripe.payment_service_provider.subscription.repository.PlanRepository;
 import com.stripe.payment_service_provider.subscription.service.UserSubscriptionService;
-import com.stripe.payment_service_provider.payment.model.StripeCustomer;
-import com.stripe.payment_service_provider.payment.dto.SubscriptionDTO;
+import com.stripe.payment_service_provider.payment.consumer.model.StripeCustomer;
+import com.stripe.payment_service_provider.payment.consumer.dto.SubscriptionDTO;
 import com.stripe.payment_service_provider.subscription.model.UserSubscription;
 import com.stripe.payment_service_provider.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;

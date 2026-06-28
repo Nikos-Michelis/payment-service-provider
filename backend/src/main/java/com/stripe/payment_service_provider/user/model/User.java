@@ -6,7 +6,7 @@ import com.stripe.payment_service_provider.security.model.otp.OtpResend;
 import com.stripe.payment_service_provider.security.model.otp.OtpToken;
 import com.stripe.payment_service_provider.security.model.token.jwt.Token;
 import com.stripe.payment_service_provider.security.model.token.reset.ResetToken;
-import com.stripe.payment_service_provider.payment.model.StripeCustomer;
+import com.stripe.payment_service_provider.payment.consumer.model.StripeCustomer;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;

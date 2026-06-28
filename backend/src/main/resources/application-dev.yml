@@ -96,6 +96,30 @@ application:
     expiration: 300
     length: 6
 
+kafka:
+  bootstrap-servers: kafka:9092
+
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    acks: all
+    retries: 3
+    properties:
+      enable.idempotence: true
+      max.in.flight.requests.per.connection: 1
+  consumer:
+    group-id: stripe-payment-service
+    auto-offset-reset: earliest
+    enable-auto-commit: false
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  listener:
+    ack-mode: manual
+  topics:
+    billing: stripe.billing
+    customers: stripe.customers
+    payments: stripe.payments
+
   api:
     stripe:
       webhook:

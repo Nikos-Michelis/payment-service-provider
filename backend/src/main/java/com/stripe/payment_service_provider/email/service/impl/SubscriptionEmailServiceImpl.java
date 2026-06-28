@@ -2,9 +2,7 @@ package com.stripe.payment_service_provider.email.service.impl;
 
 import com.stripe.payment_service_provider.email.EmailTemplateName;
 import com.stripe.payment_service_provider.email.service.SubscriptionEmailService;
-import com.stripe.payment_service_provider.subscription.model.UserSubscription;
-import com.stripe.payment_service_provider.payment.dto.email.SubscriptionEmailContext;
-import com.stripe.model.Invoice;
+import com.stripe.payment_service_provider.payment.consumer.dto.email.SubscriptionEmailContext;
 import com.stripe.payment_service_provider.utils.DateTimeUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

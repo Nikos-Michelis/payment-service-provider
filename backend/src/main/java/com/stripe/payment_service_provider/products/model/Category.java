@@ -17,12 +17,11 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "categories")
-@EntityListeners(AuditingEntityListener.class)
 public class Category extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
-    private Long id;
+    @Column(name = "category_id", nullable = false)
+    private Long categoryId;
     @UuidGenerator(style = UuidGenerator.Style.TIME)
     @Column(nullable = false, unique = true, updatable = false)
     private UUID uuid;

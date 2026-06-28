@@ -8,38 +8,32 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.UuidGenerator;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "products")
-@EntityListeners(AuditingEntityListener.class)
 public class Product extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_id", nullable = false)
     private Long id;
 
-    @Size(max = 36)
-    @NotNull
-    @Column(name = "uuid", nullable = false, length = 36)
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
+    @Column(nullable = false, length = 36)
     private String uuid;
 
     @NotNull
     @Column(name = "external_id", nullable = false)
     private Long externalId;
 
-    @Column(name = "category_id")
-    private Long categoryId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
     @Size(max = 255)
     @NotNull
@@ -47,7 +41,7 @@ public class Product extends BaseEntity {
     private String title;
 
     @Lob
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Size(max = 100)

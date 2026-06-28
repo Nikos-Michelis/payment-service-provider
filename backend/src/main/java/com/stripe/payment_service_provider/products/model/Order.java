@@ -1,6 +1,7 @@
 package com.stripe.payment_service_provider.products.model;
 
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
+import com.stripe.payment_service_provider.payment.consumer.model.StripeCustomer;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -10,6 +11,8 @@ import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -25,17 +28,9 @@ public class Order extends BaseEntity {
     @Column(name = "uuid", nullable = false, length = 36)
     private String uuid;
 
-    @NotNull
-    @Column(name = "customer_id", nullable = false)
-    private Long customerId;
-
-    @NotNull
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
-    @Lob
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private OrderStatus status;
 
     @Size(max = 3)
     @NotNull
@@ -87,4 +82,14 @@ public class Order extends BaseEntity {
 
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "customer_id", nullable = false)
+    private StripeCustomer stripeCustomer;
+
+    @OneToMany(mappedBy = "order")
+    private Set<OrderLine> orderLines = new LinkedHashSet<>();
+
+
 }
