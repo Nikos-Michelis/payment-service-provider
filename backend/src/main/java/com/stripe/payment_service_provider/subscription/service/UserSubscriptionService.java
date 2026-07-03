@@ -1,9 +1,9 @@
 package com.stripe.payment_service_provider.subscription.service;
 
-import com.stripe.payment_service_provider.payment.consumer.dto.SubscriptionItemDTO;
-import com.stripe.payment_service_provider.payment.consumer.model.StripeCustomer;
+import com.stripe.payment_service_provider.payment.api.dto.SubscriptionItemDTO;
+import com.stripe.payment_service_provider.payment.api.model.StripeCustomer;
 import com.stripe.payment_service_provider.subscription.model.UserSubscription;
-import com.stripe.payment_service_provider.payment.consumer.dto.SubscriptionDTO;
+import com.stripe.payment_service_provider.payment.api.dto.SubscriptionDTO;
 
 import java.util.Optional;
 import java.util.Set;

@@ -1,13 +1,13 @@
 package com.stripe.payment_service_provider.products.model;
 
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
-import com.stripe.payment_service_provider.payment.consumer.model.StripeCustomer;
+import com.stripe.payment_service_provider.payment.api.model.StripeCustomer;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,15 +16,18 @@ import java.util.Set;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "orders")
 public class Order extends BaseEntity {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id", nullable = false)
     private Long id;
 
-    @Size(max = 36)
-    @NotNull
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
     @Column(name = "uuid", nullable = false, length = 36)
     private String uuid;
 
@@ -47,12 +50,10 @@ public class Order extends BaseEntity {
     @Column(name = "tax_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal taxAmount;
 
-    @NotNull
     @ColumnDefault("0.00")
     @Column(name = "shipping_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal shippingAmount;
 
-    @NotNull
     @ColumnDefault("0.00")
     @Column(name = "discount_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal discountAmount;
@@ -86,7 +87,7 @@ public class Order extends BaseEntity {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", nullable = false)
-    private StripeCustomer stripeCustomer;
+    private StripeCustomer customer;
 
     @OneToMany(mappedBy = "order")
     private Set<OrderLine> orderLines = new LinkedHashSet<>();

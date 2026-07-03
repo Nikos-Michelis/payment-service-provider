@@ -4,17 +4,21 @@ import com.stripe.payment_service_provider.auditing.model.BaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "order_lines")
 public class OrderLine extends BaseEntity {
@@ -23,16 +27,9 @@ public class OrderLine extends BaseEntity {
     @Column(name = "order_line_id", nullable = false)
     private Long id;
 
-    @Size(max = 36)
-    @NotNull
-    @Column(name = "uuid", nullable = false, length = 36)
-    private String uuid;
-
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
+    @Column(nullable = false, unique = true, updatable = false)
+    private UUID uuid;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -60,5 +57,14 @@ public class OrderLine extends BaseEntity {
     @NotNull
     @Column(name = "total", nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
+
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false, cascade =  CascadeType.ALL)
+    @JoinColumn(name = "order_id", nullable = false)
+    private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "cart_id", nullable = false)
+    private Cart cart;
 
 }

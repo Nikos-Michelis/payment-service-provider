@@ -108,6 +108,11 @@ public class Product extends BaseEntity {
     @Column(name = "thumbnail_url", length = 500)
     private String thumbnailUrl;
 
+    @NotNull
+    @Version
+    @Column(name = "version")
+    private Integer version;
+
     @OneToMany(mappedBy = "product")
     private Set<OrderLine> orderLines = new LinkedHashSet<>();
 

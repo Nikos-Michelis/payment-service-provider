@@ -1,10 +1,10 @@
 package com.stripe.payment_service_provider.subscription.service.impl;
 
-import com.stripe.payment_service_provider.payment.consumer.dto.SubscriptionItemDTO;
+import com.stripe.payment_service_provider.payment.api.dto.SubscriptionItemDTO;
 import com.stripe.payment_service_provider.subscription.model.SubscriptionStatus;
 import com.stripe.payment_service_provider.subscription.service.UserSubscriptionService;
-import com.stripe.payment_service_provider.payment.consumer.model.StripeCustomer;
-import com.stripe.payment_service_provider.payment.consumer.dto.SubscriptionDTO;
+import com.stripe.payment_service_provider.payment.api.model.StripeCustomer;
+import com.stripe.payment_service_provider.payment.api.dto.SubscriptionDTO;
 import com.stripe.payment_service_provider.subscription.model.UserSubscription;
 import com.stripe.payment_service_provider.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +44,7 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
 
         UserSubscription userSubscription = UserSubscription.builder()
                 .stripeSubscriptionId(subscriptionId)
-                .stripeCustomer(stripeCustomer)
+                .customer(stripeCustomer)
                 .stripePlan(subscriptionItemDTO.stripePlan())
                 .stripePrice(subscriptionItemDTO.stripePrice())
                 .status(SubscriptionStatus.valueOf(subscriptionDTO.status().name().toUpperCase()))

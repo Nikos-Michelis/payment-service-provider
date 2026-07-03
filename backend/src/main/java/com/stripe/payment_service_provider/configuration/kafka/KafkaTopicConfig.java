@@ -8,19 +8,16 @@ import org.springframework.kafka.config.TopicBuilder;
 
 @Configuration
 public class KafkaTopicConfig {
-
-    @Value("${kafka.topics.billing}")
-    private String billingTopic;
-
-    @Value("${kafka.topics.customers}")
+    @Value("${spring.kafka.topics.products}")
+    private String productsTopic;
+    @Value("${spring.kafka.topics.customers}")
     private String customersTopic;
-
-    @Value("${kafka.topics.payments}")
+    @Value("${spring.kafka.topics.payments}")
     private String paymentsTopic;
 
     @Bean
-    public NewTopic billingTopic() {
-        return TopicBuilder.name(billingTopic)
+    public NewTopic productsTopic() {
+        return TopicBuilder.name(productsTopic)
                 .partitions(3)
                 .build();
     }
@@ -28,7 +25,7 @@ public class KafkaTopicConfig {
     @Bean
     public NewTopic customersTopic() {
         return TopicBuilder.name(customersTopic)
-                .partitions(2)
+                .partitions(3)
                 .build();
     }
 
