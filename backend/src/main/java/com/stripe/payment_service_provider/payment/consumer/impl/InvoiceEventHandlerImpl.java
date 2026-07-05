@@ -129,18 +129,29 @@ public class InvoiceEventHandlerImpl implements InvoiceEventHandler {
     }
 
     public void invoiceOnSubscriptionCycle(Invoice invoice) {
-        /*SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
+        String productId = invoice.getLines().getData().getFirst().getPricing().getPriceDetails().getProduct();
+        String subscriptionId = invoice.getParent().getSubscriptionDetails().getSubscription();
+
+        StripePlan stripePlan = planRepository.findSubscriptionPlanByStripeProductId(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
+
+        UserSubscription userSubscription = subscriptionService.getSubscriptionBySubscriptionId(subscriptionId);
+
+        StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByStripeCustomerId(invoice.getCustomer())
+                .orElseThrow(() -> new ResourceNotFoundException("No customer found with id: " + invoice.getCustomer()));
+
+        StripeInvoice stripeInvoice = buildStripeInvoice(invoice, userSubscription, invoice.getBillingReason());
+        invoiceRepository.save(stripeInvoice);
+
+        SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
                 .email(stripeCustomer.getEmail())
                 .planName(stripePlan.getName())
                 .previousPlanName(userSubscription.getStripePlan().getName())
-                .billingCycle(userSubscription.getPrice().getBilingCycle())
-                .accessStartDate(invoice.getEffectiveAt())
+                .billingCycle(userSubscription.getStripePrice().getBillingCycle())
+                .accessStartDate(Instant.ofEpochSecond(invoice.getEffectiveAt()))
                 .build();
 
-        subscriptionEmailService.sendSubscriptionRenewalEmail(
-                customerEmail,
-                userSubscription,
-                invoice);*/
+        subscriptionEmailService.sendSubscriptionRenewalEmail(subscriptionEmailContext);
     }
 
     @Override

@@ -36,9 +36,14 @@ public class PaymentMethodServiceImpl implements PaymentMethodService {
             throw new ConflictException("Stripe payment method already assign");
         }
 
-        setDefaultPaymentMethod(stripeCustomer.getCustomerId());
+        revokePaymentMethods(stripeCustomer.getCustomerId());
+        StripePaymentMethod newStripePaymentMethod = buildStripePaymentMethod(stripeCustomer, paymentMethod);
 
-        StripePaymentMethod newStripePaymentMetho = StripePaymentMethod.builder()
+        paymentMethodRepository.save(newStripePaymentMethod);
+    }
+
+    private StripePaymentMethod buildStripePaymentMethod(StripeCustomer stripeCustomer, PaymentMethod paymentMethod){
+        return StripePaymentMethod.builder()
                 .customer(stripeCustomer)
                 .stripePaymentMethodId(paymentMethod.getId())
                 .fingerprint(paymentMethod.getCard().getFingerprint())
@@ -50,11 +55,9 @@ public class PaymentMethodServiceImpl implements PaymentMethodService {
                 .exoYear(paymentMethod.getCard().getExpYear().intValue())
                 .isDefault(true)
                 .build();
-
-        paymentMethodRepository.save(newStripePaymentMetho);
     }
 
-    private void setDefaultPaymentMethod(Long customerId) {
+    private void revokePaymentMethods(Long customerId) {
         List<StripePaymentMethod> stripePaymentMethod = paymentMethodRepository.findAllByCustomer_CustomerId(customerId);
 
         for (StripePaymentMethod paymentMethod : stripePaymentMethod) {

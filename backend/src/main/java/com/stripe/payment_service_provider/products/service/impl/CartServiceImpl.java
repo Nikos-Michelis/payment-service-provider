@@ -3,6 +3,7 @@ package com.stripe.payment_service_provider.products.service.impl;
 import com.stripe.payment_service_provider.products.dto.CartDTO;
 import com.stripe.payment_service_provider.products.dto.CartItemDTO;
 import com.stripe.payment_service_provider.products.dto.CreateCartRequest;
+import com.stripe.payment_service_provider.products.mappers.CartObjectMapper;
 import com.stripe.payment_service_provider.products.model.Cart;
 import com.stripe.payment_service_provider.products.model.OrderLine;
 import com.stripe.payment_service_provider.products.model.Product;
@@ -28,7 +29,7 @@ public class CartServiceImpl implements CartService {
     private final ProductRepository productRepository;
     private final CartRepository cartRepository;
     private final OrderLineRepository orderLineRepository;
-    private final DtoConverter dtoConverter;
+    private final CartObjectMapper cartObjectMapper;
 
     @Transactional
     public CartDTO addItemToCart(User user, CreateCartRequest createCartRequest) {
@@ -50,13 +51,15 @@ public class CartServiceImpl implements CartService {
                         + product.getTitle() + " is not available, please decrease the quantity.");
             }
 
-            OrderLine orderLine = getCartOrderLine(product, item.quantity());
+            OrderLine orderLine = orderLineRepository.findOrderLineByProduct_Id(product.getId())
+                    .orElseGet(() -> buildOrderLine(product, item.quantity()));
+            orderLine.setQuantity(item.quantity());
             cart.addOrderLine(orderLine);
         }
 
         cartRepository.save(cart);
 
-        return dtoConverter.convertToDto(cart, CartDTO.class);
+        return cartObjectMapper.toDto(cart);
     }
 
     @Transactional
@@ -89,7 +92,7 @@ public class CartServiceImpl implements CartService {
     }
 
 
-    private OrderLine getCartOrderLine(Product product, Integer quantity) {
+    private OrderLine buildOrderLine(Product product, Integer quantity) {
         return OrderLine.builder()
                 .product(product)
                 .amount(product.getPrice())

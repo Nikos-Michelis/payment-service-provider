@@ -7,20 +7,19 @@ import java.util.Map;
 import java.util.Set;
 
 @Slf4j
-public abstract class BaseStateMachine<S> implements StateMachine<S> {
-    protected abstract Set<PaymentStatus> validInitialStates();
-    protected abstract Map<S, Set<S>> validTransitions();
+public abstract class BaseStateMachine<T> implements StateMachine<T> {
+    protected abstract Map<T, Set<T>> validTransitions();
 
 
     @Override
-    public boolean canTransition(S from, S to) {
+    public boolean canTransition(T from, T to) {
         return validTransitions()
             .getOrDefault(from, Set.of())
             .contains(to);
     }
 
     @Override
-    public void transition(S from, S to) {
+    public void transition(T from, T to) {
         if (!canTransition(from, to)) {
             log.warn("Invalid transition [{}] → [{}] ignored", from, to);
             return;

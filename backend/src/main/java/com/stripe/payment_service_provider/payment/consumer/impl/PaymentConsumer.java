@@ -14,7 +14,6 @@ import com.stripe.payment_service_provider.settings.exceptions.common.InvalidSta
 import com.stripe.payment_service_provider.subscription.service.PlanService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -42,32 +41,26 @@ public class PaymentConsumer {
     )
     public void processPayments(@Payload String payload, Acknowledgment ack) throws StripeException {
         Event event = new Gson().fromJson(payload, Event.class);
-        try {
-            switch (event.getType()) {
-                case "payment_method.attached" -> paymentMethodService.addPaymentMethod(event);
-                case "payment_method.detached" -> paymentMethodService.removePaymentMethod(event);
-                case "payment_intent.created" -> PaymentIntentHandler.onPaymentIntentCreate(event);
-                case "payment_intent.processing" ->
-                        PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.PROCESSING);
-                case "payment_intent.succeeded" ->
-                        PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.CAPTURED);
-                case "payment_intent.canceled" ->
-                        PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.CANCELED);
-                case "payment_intent.failed" -> PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.FAILED);
-                case "invoice.paid" -> invoiceEventHandler.onInvoicePaid(event);
-                case "invoice.payment_failed" -> invoiceEventHandler.onInvoiceUpdate(event);
-                case "invoice.upcoming" -> invoiceEventHandler.onInvoiceUpcoming(event);
-                case "invoice_payment.paid" -> invoiceEventHandler.onInvoicePaymentPaid(event);
-                default -> log.debug("Unhandled payment event: {}", event.getType());
-            }
-
-            updateEventStatus(event.getId(), EventStatus.PROCESSED);
-            ack.acknowledge();
-
-        } catch (Exception e) {
-            log.warn("Event [{}] failed, will retry: {}", event.getId(), e.getMessage());
-            throw e;
+        switch (event.getType()) {
+            case "payment_method.attached" -> paymentMethodService.addPaymentMethod(event);
+            case "payment_method.detached" -> paymentMethodService.removePaymentMethod(event);
+            case "payment_intent.created" -> PaymentIntentHandler.onPaymentIntentCreate(event);
+            case "payment_intent.processing" ->
+                    PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.PROCESSING);
+            case "payment_intent.succeeded" ->
+                    PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.CAPTURED);
+            case "payment_intent.canceled" ->
+                    PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.CANCELED);
+            case "payment_intent.failed" -> PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.FAILED);
+            case "invoice.paid" -> invoiceEventHandler.onInvoicePaid(event);
+            case "invoice.payment_failed" -> invoiceEventHandler.onInvoiceUpdate(event);
+            case "invoice.upcoming" -> invoiceEventHandler.onInvoiceUpcoming(event);
+            case "invoice_payment.paid" -> invoiceEventHandler.onInvoicePaymentPaid(event);
+            default -> log.debug("Unhandled payment event: {}", event.getType());
         }
+
+        updateEventStatus(event.getId(), EventStatus.PROCESSED);
+        ack.acknowledge();
     }
 
     @KafkaListener(
@@ -76,22 +69,15 @@ public class PaymentConsumer {
     )
     public void processSubscriptions(@Payload String payload, Acknowledgment ack) throws StripeException, InvalidStateTransitionException {
         Event event = new Gson().fromJson(payload, Event.class);
-
-        try {
-            switch (event.getType()) {
-                case "customer.subscription.created" -> subscriptionEventHandler.onCreate(event);
-                case "customer.subscription.updated" -> subscriptionEventHandler.onUpdate(event);
-                case "customer.subscription.deleted" -> subscriptionEventHandler.onCancel(event);
-                default -> log.debug("Unhandled billing event: {}", event.getType());
-            }
-
-            updateEventStatus(event.getId(), EventStatus.PROCESSED);
-            ack.acknowledge();
-
-        } catch (Exception e) {
-            log.warn("Event [{}] failed, will retry: {}", event.getId(), e.getMessage());
-            throw e;
+        switch (event.getType()) {
+            case "customer.subscription.created" -> subscriptionEventHandler.onSubscriptionCreate(event);
+            case "customer.subscription.updated" -> subscriptionEventHandler.onSubscriptionUpdate(event);
+            case "customer.subscription.deleted" -> subscriptionEventHandler.onSubscriptionCancel(event);
+            default -> log.debug("Unhandled billing event: {}", event.getType());
         }
+
+        updateEventStatus(event.getId(), EventStatus.PROCESSED);
+        ack.acknowledge();
     }
 
     @KafkaListener(
@@ -100,24 +86,17 @@ public class PaymentConsumer {
     )
     public void processProducts(@Payload String payload, Acknowledgment ack) throws InvalidStateTransitionException {
         Event event = new Gson().fromJson(payload, Event.class);
-
-        try {
-            switch (event.getType()) {
-                case "product.created" -> planService.onPlanCreate(event);
-                case "product.updated", "product.deleted" -> planService.onPlanUpdate(event);
-                case "price.created" -> planService.onPriceCreate(event);
-                case "price.updated" -> planService.onPriceUpdate(event);
-                default -> log.debug("Unhandled billing event: {}", event.getType());
-            }
-
-            updateEventStatus(event.getId(), EventStatus.PROCESSED);
-            ack.acknowledge();
-            log.info("Processed billing event [{}] type [{}]", event.getId(), event.getType());
-
-        } catch (InvalidStateTransitionException | ResourceNotFoundException e) {
-            log.error("Failed to process billing event [{}]: {}", event.getId(), e.getMessage());
-            throw e;
+        switch (event.getType()) {
+            case "product.created" -> planService.onPlanCreate(event);
+            case "product.updated", "product.deleted" -> planService.onPlanUpdate(event);
+            case "price.created" -> planService.onPriceCreate(event);
+            case "price.updated" -> planService.onPriceUpdate(event);
+            default -> log.debug("Unhandled billing event: {}", event.getType());
         }
+
+        updateEventStatus(event.getId(), EventStatus.PROCESSED);
+        ack.acknowledge();
+        log.info("Processed billing event [{}] type [{}]", event.getId(), event.getType());
     }
 
     private Event parse(String payload) {

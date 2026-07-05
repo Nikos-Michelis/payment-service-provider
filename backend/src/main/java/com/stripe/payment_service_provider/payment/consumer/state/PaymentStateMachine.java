@@ -12,11 +12,6 @@ import static com.stripe.payment_service_provider.payment.api.model.PaymentStatu
 public class PaymentStateMachine extends BaseStateMachine<PaymentStatus> {
 
     @Override
-    protected Set<PaymentStatus> validInitialStates() {
-        return Set.of(PaymentStatus.CREATED);
-    }
-
-    @Override
     protected Map<PaymentStatus, Set<PaymentStatus>> validTransitions() {
         return Map.of(
                 CREATED,             Set.of(PROCESSING, REQUIRES_ACTION, CAPTURED, FAILED, CANCELED),

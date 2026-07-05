@@ -2,7 +2,9 @@ package com.stripe.payment_service_provider.payment.consumer.impl;
 
 import com.stripe.model.Event;
 import com.stripe.model.SubscriptionItem;
+import com.stripe.payment_service_provider.email.service.SubscriptionEmailService;
 import com.stripe.payment_service_provider.payment.api.dto.SubscriptionItemDTO;
+import com.stripe.payment_service_provider.payment.api.dto.email.SubscriptionEmailContext;
 import com.stripe.payment_service_provider.payment.api.model.StripeCustomer;
 import com.stripe.payment_service_provider.payment.consumer.SubscriptionEventHandler;
 import com.stripe.payment_service_provider.payment.api.repository.CustomerRepository;
@@ -29,9 +31,10 @@ public class SubscriptionEventHandlerImpl implements SubscriptionEventHandler {
     private final UserSubscriptionServiceImpl subscriptionService;
     private final PlanRepository planRepository;
     private final ProductUtil productUtil;
+    private final SubscriptionEmailService subscriptionEmailService;
 
     @Transactional
-    public void onCreate(Event event) {
+    public void onSubscriptionCreate(Event event) {
         Subscription subscription = handleSubscriptionEvent(event);
         String customerId = subscription.getCustomer();
         StripeCustomer stripeCustomer = customerRepository.findStripeCustomerByStripeCustomerId(customerId)
@@ -43,7 +46,7 @@ public class SubscriptionEventHandlerImpl implements SubscriptionEventHandler {
     }
 
     @Transactional
-    public void onUpdate(Event event) {
+    public void onSubscriptionUpdate(Event event) {
         Subscription subscription = handleSubscriptionEvent(event);
 
         SubscriptionDTO subscriptionDTO = buildSubscriptionDTO(subscription);
@@ -52,7 +55,7 @@ public class SubscriptionEventHandlerImpl implements SubscriptionEventHandler {
     }
 
     @Transactional
-    public UserSubscription onCancel(Event event) {
+    public void onSubscriptionCancel(Event event) {
         Subscription subscription = handleSubscriptionEvent(event);
         boolean isCancelingAtPeriodEnd = subscription.getCancelAtPeriodEnd();
 
@@ -67,7 +70,15 @@ public class SubscriptionEventHandlerImpl implements SubscriptionEventHandler {
                 Instant.ofEpochSecond(subscription.getEndedAt())
         );
 
-        return subscriptionService.cancel(subscriptionDTO);
+        UserSubscription userSubscription = subscriptionService.cancel(subscriptionDTO);
+
+        SubscriptionEmailContext subscriptionEmailContext = SubscriptionEmailContext.builder()
+                .email(userSubscription.getCustomer().getEmail())
+                .planName(userSubscription.getStripePlan().getName())
+                .accessEndDate(userSubscription.getCurrentPeriodEnd())
+                .build();
+
+        subscriptionEmailService.sendSubscriptionCancelledEmail(subscriptionEmailContext);
     }
 
     private SubscriptionDTO buildSubscriptionDTO(Subscription subscription) {
