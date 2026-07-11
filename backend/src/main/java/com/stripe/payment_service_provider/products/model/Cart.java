@@ -3,7 +3,6 @@ package com.stripe.payment_service_provider.products.model;
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
 import com.stripe.payment_service_provider.user.model.User;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -28,22 +27,20 @@ public class Cart extends BaseEntity {
     @Column(nullable = false, unique = true, updatable = false)
     private UUID uuid;
 
-    @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Builder.Default
-    @OneToMany(mappedBy = "cart", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH })
-    private Set<OrderLine> orderLines = new HashSet<>();
+    @OneToMany(mappedBy = "cart", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH }, orphanRemoval = true)
+    private Set<CartItem> cartItems = new HashSet<>();
 
-    public void addOrderLine(OrderLine orderLine) {
-        this.orderLines.add(orderLine);
-        orderLine.setCart(this);
+    public void addCartLine(CartItem cartItem) {
+        this.cartItems.add(cartItem);
+        cartItem.setCart(this);
     }
 
-    public void removeOrderLine(OrderLine orderLine) {
-        this.orderLines.remove(orderLine);
+    public void removeOrderLine(CartItem cartItem) {
+        this.cartItems.remove(cartItem);
     }
-
 }

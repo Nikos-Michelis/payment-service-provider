@@ -2,7 +2,6 @@ package com.stripe.payment_service_provider.user.model;
 
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
 import com.stripe.payment_service_provider.products.model.Cart;
-import com.stripe.payment_service_provider.products.model.OrderLine;
 import com.stripe.payment_service_provider.security.model.EntryMethods;
 import com.stripe.payment_service_provider.security.model.otp.OtpResend;
 import com.stripe.payment_service_provider.security.model.otp.OtpToken;

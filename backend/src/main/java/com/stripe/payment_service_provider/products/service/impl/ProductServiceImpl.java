@@ -1,71 +1,56 @@
 package com.stripe.payment_service_provider.products.service.impl;
 
+import com.stripe.payment_service_provider.products.dto.PageSortingDTO;
+import com.stripe.payment_service_provider.products.dto.ProductDTO;
+import com.stripe.payment_service_provider.products.mappers.ProductObjectMapper;
 import com.stripe.payment_service_provider.products.model.Product;
 import com.stripe.payment_service_provider.products.repository.ProductRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.stripe.payment_service_provider.products.repository.specifications.ProductSpecification;
+import com.stripe.payment_service_provider.products.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
-public class ProductServiceImpl {
-
+public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
+    private final ProductObjectMapper productObjectMapper;
 
-    public Product create(Product product) {
-        return productRepository.save(product);
-    }
+    private final Map<String, Function<String, Specification<Product>>> filters = Map.of(
+            "brand", ProductSpecification::hasBrand,
+            "sku", ProductSpecification::hasSku,
+            "barcode", ProductSpecification::hasBarcode,
+            "availabilityStatus", ProductSpecification::hasAvailabilityStatus,
+            "search", ProductSpecification::hasSearchKey
+    );
 
-    public Product getById(Long id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Product not found: " + id));
-    }
 
-    public List<Product> getAll() {
-        return productRepository.findAll();
-    }
+    public Page<ProductDTO> searchProducts(Map<String, String> requestParams, PageSortingDTO pageSortingDTO) {
+        Specification<Product> spec = Specification.unrestricted();
 
-    public void decreaseStock(Long productId, int qty) {
-        Product product = getById(productId);
-
-        if (product.getStock() < qty) {
-            throw new IllegalStateException("Out of stock");
+        for (Map.Entry<String, String> entry : requestParams.entrySet()) {
+            Function<String, Specification<Product>> filter = filters.get(entry.getKey());
+            if (filter != null) {
+                spec = spec.and(filter.apply(entry.getValue()));
+            }
         }
 
-        product.setStock(product.getStock() - qty);
-    }
+        Sort sortObject = "desc".equalsIgnoreCase(pageSortingDTO.getSort())
+                ? Sort.by(pageSortingDTO.getField()).descending()
+                : Sort.by(pageSortingDTO.getField()).ascending();
 
-    @Transactional
-    public Product update(Long id, Product updated) {
-        Product product = getById(id);
+        int page = (pageSortingDTO.getPage() > 0) ? pageSortingDTO.getPage() - 1 : 0;
+        Pageable pageable = PageRequest.of(page, pageSortingDTO.getLimit(), sortObject);
 
-        product.setTitle(updated.getTitle());
-        product.setDescription(updated.getDescription());
-        product.setBrand(updated.getBrand());
-        product.setSku(updated.getSku());
-        product.setPrice(updated.getPrice());
-        product.setDiscountPercentage(updated.getDiscountPercentage());
-        product.setRating(updated.getRating());
-        product.setStock(updated.getStock());
-        product.setWeight(updated.getWeight());
-        product.setWarrantyInformation(updated.getWarrantyInformation());
-        product.setShippingInformation(updated.getShippingInformation());
-        product.setAvailabilityStatus(updated.getAvailabilityStatus());
-        product.setReturnPolicy(updated.getReturnPolicy());
-        product.setMinimumOrderQuantity(updated.getMinimumOrderQuantity());
-        product.setBarcode(updated.getBarcode());
-        product.setQrCodeUrl(updated.getQrCodeUrl());
-        product.setThumbnailUrl(updated.getThumbnailUrl());
-
-        return product;
-    }
-
-    @Transactional
-    public void delete(Long id) {
-        Product product = getById(id);
-        productRepository.delete(product);
+        Page<Product> products = productRepository.findAll(spec, pageable);
+        return products.map(productObjectMapper::toDto);
     }
 }

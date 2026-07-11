@@ -12,7 +12,7 @@ import java.time.Instant;
 @Mapper
 public interface StripeSubscriptionObjectMapper {
 
-    @Mapping(target = "subscriptionId", source = "id")
+   /* @Mapping(target = "subscriptionId", source = "id")
     @Mapping(target = "status", source = "status", qualifiedByName = "mapStatus")
     @Mapping(target = "startDate", source = "startDate", qualifiedByName = "epochToInstant")
     @Mapping(target = "endedAt", source = "endedAt", qualifiedByName = "epochToInstant")
@@ -26,5 +26,5 @@ public interface StripeSubscriptionObjectMapper {
     @Named("epochToInstant")
     default Instant epochToInstant(Long epochSeconds) {
         return epochSeconds == null ? null : Instant.ofEpochSecond(epochSeconds);
-    }
+    }*/
 }

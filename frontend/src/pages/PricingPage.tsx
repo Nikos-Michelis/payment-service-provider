@@ -1,4 +1,4 @@
-import React, {Suspense, useState} from 'react';
+import React, {useState} from 'react';
 import {Zap} from 'lucide-react';
 import {Badge} from '@/components/ui/badge.tsx';
 import {Switch} from '@/components/ui/switch.tsx';

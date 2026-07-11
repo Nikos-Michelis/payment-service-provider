@@ -42,26 +42,17 @@ public class Order extends BaseEntity {
 
     @NotNull
     @ColumnDefault("0.00")
-    @Column(name = "subtotal_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal subtotalAmount;
+    @Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
+    private BigDecimal subtotal;
+
+    @ColumnDefault("0.00")
+    @Column(name = "shipping", nullable = false, precision = 10, scale = 2)
+    private BigDecimal shipping;
 
     @NotNull
     @ColumnDefault("0.00")
-    @Column(name = "tax_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal taxAmount;
-
-    @ColumnDefault("0.00")
-    @Column(name = "shipping_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal shippingAmount;
-
-    @ColumnDefault("0.00")
-    @Column(name = "discount_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal discountAmount;
-
-    @NotNull
-    @ColumnDefault("0.00")
-    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;
+    @Column(name = "total", nullable = false, precision = 10, scale = 2)
+    private BigDecimal total;
 
     @Size(max = 255)
     @Column(name = "tracking_number")
@@ -89,8 +80,18 @@ public class Order extends BaseEntity {
     @JoinColumn(name = "customer_id", nullable = false)
     private StripeCustomer customer;
 
-    @OneToMany(mappedBy = "order")
-    private Set<OrderLine> orderLines = new LinkedHashSet<>();
 
+    @Builder.Default
+    @OneToMany(mappedBy = "order", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH }, orphanRemoval = true)
+    private Set<OrderItem> orderItems = new LinkedHashSet<>();
+
+    public void addOrderLine(OrderItem orderItem) {
+        this.orderItems.add(orderItem);
+        orderItem.setOrder(this);
+    }
+
+    public void addAllOrderLines(Set<OrderItem> orderItems) {
+        orderItems.forEach(this::addOrderLine);
+    }
 
 }

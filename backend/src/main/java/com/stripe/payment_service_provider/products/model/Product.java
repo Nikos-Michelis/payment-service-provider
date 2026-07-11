@@ -60,7 +60,12 @@ public class Product extends BaseEntity {
     @NotNull
     @ColumnDefault("0.00")
     @Column(name = "discount_percentage", nullable = false, precision = 5, scale = 2)
-    private BigDecimal discountPercentage;
+    private Integer discountPercentage;
+
+    @NotNull
+    @ColumnDefault("0.00")
+    @Column(name = "tax", nullable = false, precision = 5, scale = 2)
+    private Integer tax;
 
     @NotNull
     @ColumnDefault("0.00")
@@ -114,13 +119,13 @@ public class Product extends BaseEntity {
     private Integer version;
 
     @OneToMany(mappedBy = "product")
-    private Set<OrderLine> orderLines = new LinkedHashSet<>();
+    private Set<OrderItem> orderItems = new LinkedHashSet<>();
 
     @OneToOne(mappedBy = "product")
     private ProductDimension productDimension;
 
     @OneToMany(mappedBy = "product")
-    private Set<ProductImage> productImages = new LinkedHashSet<>();
+    private Set<ProductImage> images = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "product")
     private Set<ProductReview> productReviews = new LinkedHashSet<>();

@@ -1,6 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { handleDelete, handlePost, handlePut } from "@/services/api.jsx";
+import {type QueryKey, useMutation, type UseMutationOptions, useQueryClient} from "@tanstack/react-query";
+import {handleDelete, handlePatch, handlePost, handlePut} from "@/services/api.jsx";
 import { toast } from "sonner";
+import type {AxiosRequestConfig} from "axios";
+import loginForm from "@/components/forms/LoginForm.tsx";
 
 interface RequestOptions {
     withCredentials?: boolean;
@@ -72,7 +74,7 @@ export const useCreateMutation = <TData, TResponse>(
     });
 };
 
-export const useDeleteMutation = <TResponse = unknown>(
+export const useDeleteMutation = <TResponse>(
     {
         successMessage,
         errorMessage = "Oops! Something went wrong...",
@@ -87,11 +89,9 @@ export const useDeleteMutation = <TResponse = unknown>(
         mutationFn: ({ url, options }) => handleDelete(url, options),
 
         onSuccess: (data, variables, context) => {
-            const {onSuccess} = mutationOptions
+            const { onSuccess } = mutationOptions
             if (successMessage) toast.success(successMessage);
-            if(mutationOptions) {
-                onSuccess(data, variables, context)
-            }
+            if(onSuccess) onSuccess(data, variables, context)
         },
 
         onError: (error) => {
@@ -115,11 +115,8 @@ export const useDeleteMutation = <TResponse = unknown>(
     });
 };
 
-interface WithId {
-    id?: string | number;
-}
 
-export const useUpdateMutation = <TData extends WithId = WithId, TResponse = unknown>(
+export const useUpdateMutation = <TData, TResponse = unknown>(
     {
         successMessage = "Operation successful!",
         errorMessage = "Oops! Something went wrong...",
@@ -145,7 +142,51 @@ export const useUpdateMutation = <TData extends WithId = WithId, TResponse = unk
         },
 
         onSettled: async (_, error, variables) => {
-            const {data } = variables;
+            const { data } = variables;
+            if (!error && queryKeysToInvalidate.length > 0) {
+                await Promise.all(
+                    queryKeysToInvalidate.flatMap((key) => [
+                        queryClient.invalidateQueries({ queryKey: key }),
+                        queryClient.invalidateQueries({
+                            queryKey: [...key, data?.id],
+                        }),
+                    ])
+                );
+            }
+        },
+
+        ...mutationOptions,
+    });
+};
+
+
+export const usePatchMutation = <TData, TResponse = unknown>(
+    {
+        successMessage = "Operation successful!",
+        errorMessage = "Oops! Something went wrong...",
+        showError = true,
+        queryKeysToInvalidate = [],
+        mutationOptions = {},
+    }: MutationProps = {}
+) => {
+    const queryClient = useQueryClient();
+
+    return useMutation<TResponse, ApiError, MutationVariables<TData>>({
+        mutationFn: ({ url, data, options }) => handlePatch(url, data, options),
+
+        onSuccess: () => {
+            if (successMessage) toast.success(successMessage);
+        },
+
+        onError: (error) => {
+            if (showError) {
+                const msg = error.response?.data?.error ?? errorMessage;
+                toast.error(msg);
+            }
+        },
+
+        onSettled: async (_, error, variables) => {
+            const { data } = variables;
             if (!error && queryKeysToInvalidate.length > 0) {
                 await Promise.all(
                     queryKeysToInvalidate.flatMap((key) => [

@@ -24,7 +24,7 @@ public class KafkaRelayWorker {
     private final KafkaMessageProducer kafkaMessageProducer;
 
     @Transactional
-    @Scheduled(fixedDelayString = "3000")
+    //@Scheduled(fixedDelayString = "3000")
     public void relayPendingToKafka() {
         List<WebhookEvent> webhookEvents = eventRepository.findTopNByStatusOrderByReceivedAt(EventStatus.PENDING, 50);
         if (webhookEvents.isEmpty()) {
@@ -38,7 +38,7 @@ public class KafkaRelayWorker {
     }
 
     @Transactional
-    @Scheduled(fixedDelayString = "3000")
+   // @Scheduled(fixedDelayString = "3000")
     public void relayFailedToKafka() {
         List<WebhookEvent> webhookEvents = eventRepository.findTopNByStatusOrderByReceivedAt(EventStatus.FAILED, 50);
         if (webhookEvents.isEmpty()) {

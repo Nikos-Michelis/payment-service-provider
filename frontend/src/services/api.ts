@@ -42,6 +42,15 @@ const handlePut = async <TResponse, TData>(
     return response.data;
 }
 
+const handlePatch = async <TResponse, TData>(
+    url: string,
+    data: TData,
+    options?: RequestOptions
+): Promise<TResponse> => {
+    const response: AxiosResponse<TResponse> = await api.patch(url, data, {...options});
+    return response.data;
+}
+
 const handleDelete = async <TResponse>(
     url: string,
     options?: RequestOptions
@@ -50,4 +59,4 @@ const handleDelete = async <TResponse>(
     return response.data;
 };
 
-export { api, handlePost, handleGet, handlePut, handleDelete };
+export { api, handlePost, handleGet, handlePut, handlePatch, handleDelete };

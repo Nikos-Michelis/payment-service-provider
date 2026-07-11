@@ -12,6 +12,7 @@ import {ThemeToggle} from "@/components/button/ThemeToggle.tsx";
 import AuthModal from "@/components/modal/AuthModal.tsx";
 import {useState} from "react";
 import useAuth from "@/hooks/useAuth.ts";
+import CartIcon from "@/components/CartIcon.tsx";
 
 function Header() {
     const {user} = useAuth();
@@ -40,10 +41,10 @@ function Header() {
                             <NavigationMenuItem>
                                 <NavigationMenuLink asChild>
                                     <NavLink
-                                        to="/dashboard"
+                                        to="/Shop"
                                         className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
                                     >
-                                        Dashboard
+                                        Shop
                                     </NavLink>
                                 </NavigationMenuLink>
                             </NavigationMenuItem>
@@ -53,6 +54,7 @@ function Header() {
                 </div>
                 <div className="flex items-center gap-3">
                     <ThemeToggle />
+                    <CartIcon />
                     <Button variant="ghost">
                         Support
                     </Button>
@@ -62,7 +64,7 @@ function Header() {
                             <AuthModal open={open} onOpenChange={setOpen}/>
                         ) : (
                             <NavLink
-                                to="/dashboard"
+                                to="/profile"
                             >
                                 <Avatar>
                                     <AvatarFallback>AS</AvatarFallback>

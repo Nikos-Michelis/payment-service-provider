@@ -42,74 +42,74 @@ public class ReconciliationWorker {
 
     private final CustomerUtil customerUtil;
 
-    @Scheduled(cron = "0 */1 * * * *")
-    @Transactional
-    public void validateUnsubscribedUsers() throws StripeException {
-        List<User> unsubscribedUsers = userRepository.findAllUnsubscribedUsers();
-
-        if (unsubscribedUsers.isEmpty()) {
-            return;
-        }
-
-        Map<String, User> unsubscribedUserMap = getUsersMap(unsubscribedUsers);
-        List<Subscription> subscriptions = subscriptionUtil.getLatestSubscriptionPerCustomer();
-        for (Subscription subscription : subscriptions) {
-            Optional<Customer> customer = customerUtil.findCustomerByCustomerId(subscription.getCustomer());
-
-            if (customer.isEmpty()) {
-                continue;
-            }
-
-            if (unsubscribedUserMap.containsKey(customer.get().getId())) {
-                User user = unsubscribedUserMap.get(customer.get().getEmail());
-                Product product = productUtil.getProductBySubscription(subscription);
-                StripePlan stripePlan = getSubscriptionPlanById(product.getId());
-                SubscriptionDTO subscriptionDTO = getStripeSubscriptionDTO(subscription);
-                subscriptionService.createOrUpdate(user.getStripeCustomer(), subscriptionDTO, stripePlan);
-            }
-        }
-        log.info("Subscription validation for unsubscribed users completed");
-    }
-
-    //@Scheduled(cron = "0 */1 * * * *")
-    @Transactional
-    public void validateSubscribedUsers() throws StripeException {
-        List<User> subscribedUsers = userRepository.findAllSubscribedUsers();
-
-        if (subscribedUsers.isEmpty()) {
-            return;
-        }
-
-        Map<String, User> subscribedUserMap = getUsersMap(subscribedUsers);
-        List<Subscription> subscriptions = subscriptionUtil.getLatestSubscriptionPerCustomer();
-
-        for (Subscription subscription : subscriptions) {
-
-            Customer customer = Customer.retrieve(subscription.getCustomer());
-
-            Product product = productUtil.getProductBySubscription(subscription);
-
-            if (!subscribedUserMap.containsKey(customer.getEmail())) {
-                continue;
-            }
-
-            User user = subscribedUserMap.get(customer.getEmail());
-
-            UserSubscription userSubscription = subscriptionService.getActiveUserSubscription(user.getStripeCustomer().getSubscriptions())
-                    .orElseThrow(() -> new ResourceNotFoundException("user subscriptions not found"));
-
-            String currentStripePlanId = getCurrentPlan(userSubscription).getStripeProductId();
-
-            if (currentStripePlanId.equals(product.getId())) {
-                StripePlan stripePlan = getSubscriptionPlanById(product.getId());
-                SubscriptionDTO subscriptionDTO = getStripeSubscriptionDTO(subscription);
-                subscriptionService.createOrUpdate(user.getStripeCustomer(), subscriptionDTO, stripePlan);
-            }
-        }
-
-
-        log.info("Subscription validation for subscribed users completed");
-    }
+//    @Scheduled(cron = "0 */1 * * * *")
+//    @Transactional
+//    public void validateUnsubscribedUsers() throws StripeException {
+//        List<User> unsubscribedUsers = userRepository.findAllUnsubscribedUsers();
+//
+//        if (unsubscribedUsers.isEmpty()) {
+//            return;
+//        }
+//
+//        Map<String, User> unsubscribedUserMap = getUsersMap(unsubscribedUsers);
+//        List<Subscription> subscriptions = subscriptionUtil.getLatestSubscriptionPerCustomer();
+//        for (Subscription subscription : subscriptions) {
+//            Optional<Customer> customer = customerUtil.findCustomerByCustomerId(subscription.getCustomer());
+//
+//            if (customer.isEmpty()) {
+//                continue;
+//            }
+//
+//            if (unsubscribedUserMap.containsKey(customer.get().getId())) {
+//                User user = unsubscribedUserMap.get(customer.get().getEmail());
+//                Product product = productUtil.getProductBySubscription(subscription);
+//                StripePlan stripePlan = getSubscriptionPlanById(product.getId());
+//                SubscriptionDTO subscriptionDTO = getStripeSubscriptionDTO(subscription);
+//                subscriptionService.createOrUpdate(user.getStripeCustomer(), subscriptionDTO, stripePlan);
+//            }
+//        }
+//        log.info("Subscription validation for unsubscribed users completed");
+//    }
+//
+//    //@Scheduled(cron = "0 */1 * * * *")
+//    @Transactional
+//    public void validateSubscribedUsers() throws StripeException {
+//        List<User> subscribedUsers = userRepository.findAllSubscribedUsers();
+//
+//        if (subscribedUsers.isEmpty()) {
+//            return;
+//        }
+//
+//        Map<String, User> subscribedUserMap = getUsersMap(subscribedUsers);
+//        List<Subscription> subscriptions = subscriptionUtil.getLatestSubscriptionPerCustomer();
+//
+//        for (Subscription subscription : subscriptions) {
+//
+//            Customer customer = Customer.retrieve(subscription.getCustomer());
+//
+//            Product product = productUtil.getProductBySubscription(subscription);
+//
+//            if (!subscribedUserMap.containsKey(customer.getEmail())) {
+//                continue;
+//            }
+//
+//            User user = subscribedUserMap.get(customer.getEmail());
+//
+//            UserSubscription userSubscription = subscriptionService.getActiveUserSubscription(user.getStripeCustomer().getSubscriptions())
+//                    .orElseThrow(() -> new ResourceNotFoundException("user subscriptions not found"));
+//
+//            String currentStripePlanId = getCurrentPlan(userSubscription).getStripeProductId();
+//
+//            if (currentStripePlanId.equals(product.getId())) {
+//                StripePlan stripePlan = getSubscriptionPlanById(product.getId());
+//                SubscriptionDTO subscriptionDTO = getStripeSubscriptionDTO(subscription);
+//                subscriptionService.createOrUpdate(user.getStripeCustomer(), subscriptionDTO, stripePlan);
+//            }
+//        }
+//
+//
+//        log.info("Subscription validation for subscribed users completed");
+//    }
 
     private StripePlan getCurrentPlan(UserSubscription userSubscription) {
         return userSubscription.getStripePlan();

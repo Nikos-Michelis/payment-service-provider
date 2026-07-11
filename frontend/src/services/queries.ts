@@ -65,8 +65,8 @@ export const useSimpleQuery = <TData>(
         placeholderData = keepPreviousData,
         refetchInterval = 30 * 60 * 1000,
         refetchOnWindowFocus = true,
-        queryOptions= {},
-        options = { withCredentials: false, withXSRFToken: false }
+        queryOptions = {},
+        options = {withCredentials: false, withXSRFToken: false}
     }: ParameterizedQueryProps) => {
     return useQuery<TData>({
         queryKey: [cacheKey],

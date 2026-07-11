@@ -22,40 +22,46 @@ import java.util.Optional;
 public class SubscriptionController {
     private final StripeSubscriptionService stripeSubscriptionService;
 
-    @PostMapping("/subscription/new")
+    @PostMapping("/subscriptions/checkout")
     public ResponseEntity<?> createSubscription(
             @AuthenticationPrincipal User user,
-            @RequestBody SubscriptionRequestDTO paymentRequest,
+            @RequestBody SubscriptionRequestDTO subscriptionRequest,
             @RequestHeader(value="Idempotency-Key") String idempotencyKey
     ) throws StripeException {
-        SessionResponseDTO response = stripeSubscriptionService.createSubscription(paymentRequest, user.getEmail(), idempotencyKey);
+        SessionResponseDTO response = stripeSubscriptionService.createSubscription(subscriptionRequest, user.getEmail(), idempotencyKey);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/subscription/upgrade")
+    @PostMapping("/subscription/switch")
     public ResponseEntity<?> upgradeSubscription(
             @AuthenticationPrincipal User user,
-            @RequestBody SubscriptionRequestDTO paymentRequest,
+            @RequestBody SubscriptionRequestDTO subscriptionRequest,
             @RequestHeader(value="Idempotency-Key") String idempotencyKey
     ) throws StripeException {
-        SessionResponseDTO response = stripeSubscriptionService.updateSubscription(paymentRequest, user.getEmail(), idempotencyKey);
+        SessionResponseDTO response = stripeSubscriptionService.updateSubscription(subscriptionRequest, user.getEmail(), idempotencyKey);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/subscription/renew")
-    public ResponseEntity<?> renewSubscription(@AuthenticationPrincipal User user, @RequestHeader(value="Idempotency-Key") String idempotencyKey) throws StripeException {
+    public ResponseEntity<?> renewSubscription(
+            @AuthenticationPrincipal User user,
+            @RequestHeader(value="Idempotency-Key") String idempotencyKey
+    ) throws StripeException {
         String response = stripeSubscriptionService.renewSubscription(user.getEmail(), idempotencyKey);
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/subscription/list")
+    @GetMapping("/subscriptions")
     public ResponseEntity<?> getSubscriptions(@AuthenticationPrincipal User user) throws StripeException {
         Optional<List<SubscriptionResponseDTO>> response = stripeSubscriptionService.findSubscriptionByCustomerEmail(user.getEmail());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/subscription/cancel")
-    public ResponseEntity<?> cancelSubscription(@AuthenticationPrincipal User user, @RequestHeader(value="Idempotency-Key") String idempotencyKey) throws StripeException {
+    public ResponseEntity<?> cancelSubscription(
+            @AuthenticationPrincipal User user,
+            @RequestHeader(value="Idempotency-Key") String idempotencyKey
+    ) throws StripeException {
         SessionResponseDTO response = stripeSubscriptionService.cancelSubscription(user.getEmail(), idempotencyKey);
         return ResponseEntity.ok(response);
     }

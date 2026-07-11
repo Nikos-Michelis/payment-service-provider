@@ -257,8 +257,7 @@ public class StripeSubscriptionServiceImpl implements StripeSubscriptionService 
         StripePaymentMethod stripePaymentMethod = paymentMethodRepository.findPaymentMethodByStripePaymentMethodId(subscription.getDefaultPaymentMethod())
                 .orElseThrow(() -> new ResourceNotFoundException("Stripe payment method not found"));
 
-        PaymentMethodDTO paymentMethodDTO =
-                new PaymentMethodDTO(stripePaymentMethod.getLast4(),  stripePaymentMethod.getBrand(), stripePaymentMethod.getType());
+        PaymentMethodDTO paymentMethodDTO = new PaymentMethodDTO(stripePaymentMethod.getLast4(),  stripePaymentMethod.getBrand(), stripePaymentMethod.getType());
 
         return new SubscriptionResponseDTO(
                 subscription.getId(),

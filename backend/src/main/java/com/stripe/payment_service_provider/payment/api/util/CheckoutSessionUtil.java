@@ -35,6 +35,25 @@ public class CheckoutSessionUtil {
                 .setCancelUrl(clientBaseURL + "/failure");
     }
 
+    public SessionCreateParams.ShippingOption buildShippingOption() {
+        return SessionCreateParams.ShippingOption.builder()
+                .setShippingRateData(
+                        SessionCreateParams.ShippingOption.ShippingRateData.builder()
+                                .setDisplayName("Standard Shipping")
+                                .setType(
+                                        SessionCreateParams.ShippingOption.ShippingRateData.Type.FIXED_AMOUNT
+                                )
+                                .setFixedAmount(
+                                        SessionCreateParams.ShippingOption.ShippingRateData.FixedAmount.builder()
+                                                .setAmount(500L)
+                                                .setCurrency("USD")
+                                                .build()
+                                )
+                                .build()
+                )
+                .build();
+    }
+
     public RequestOptions getIdempotencyKey(String idempotencyKey) {
         return RequestOptions.builder().setIdempotencyKey(idempotencyKey).build();
     }

@@ -1,10 +1,12 @@
 package com.stripe.payment_service_provider.products.service.impl;
 
 import com.stripe.payment_service_provider.payment.api.model.StripeCustomer;
+import com.stripe.payment_service_provider.products.dto.TotalItemCost;
 import com.stripe.payment_service_provider.products.model.*;
-import com.stripe.payment_service_provider.products.repository.OrderLineRepository;
 import com.stripe.payment_service_provider.products.repository.OrderRepository;
 import com.stripe.payment_service_provider.products.repository.ProductRepository;
+import com.stripe.payment_service_provider.products.service.OrderService;
+import com.stripe.payment_service_provider.products.service.PricingService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,91 +14,79 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class OrderServiceImpl {
+public class OrderServiceImpl implements OrderService {
     private static final int SCALE = 2;
     private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final PricingService pricingService;
 
 
     @Transactional
-    public void createOrder(StripeCustomer stripeCustomer, Cart cart) {
-        Set<OrderLine> orderLines = cart.getOrderLines();
-
+    public void createOrder(StripeCustomer stripeCustomer, Set<OrderItem> orderItems) {
         BigDecimal subtotal = BigDecimal.ZERO.setScale(SCALE, ROUNDING);
-        BigDecimal totalDiscount = BigDecimal.ZERO.setScale(SCALE, ROUNDING);
+        BigDecimal total = BigDecimal.ZERO;
 
-        for (OrderLine orderLine : orderLines) {
-            Product product = decreaseStock(orderLine.getProduct().getSku(), orderLine.getQuantity());
-
-            BigDecimal unitPrice = product.getPrice();
-            BigDecimal quantity = BigDecimal.valueOf(orderLine.getQuantity());
-            BigDecimal lineSubtotal = unitPrice.multiply(quantity).setScale(SCALE, ROUNDING);
-
-            BigDecimal lineDiscount = getOrderLineDiscount(product.getDiscountPercentage(), lineSubtotal);
-
-            subtotal = subtotal.add(orderLine.getTotal());
-            totalDiscount = totalDiscount.add(lineDiscount);
+        for (OrderItem item : orderItems) {
+            decreaseStock(item.getProduct().getSku(), item.getQuantity());
         }
 
-        BigDecimal taxableAmount = subtotal.subtract(totalDiscount);
-        BigDecimal taxAmount = taxableAmount
-                .multiply(BigDecimal.valueOf(22))
-                .setScale(SCALE, ROUNDING);
+        for (OrderItem item : orderItems) {
+            TotalItemCost itemCost = pricingService.calculateItemCost(item.getProduct(), item.getQuantity());
+            subtotal = subtotal.add(itemCost.subtotal());
+            total = total.add(itemCost.total());
+        }
 
-        BigDecimal totalAmount = taxableAmount.add(taxAmount);
+        BigDecimal shippingCost = BigDecimal.valueOf(2);
+        total = total.add(shippingCost);
 
-        Order order = buildBaseOrder(stripeCustomer, orderLines);
-        order.setSubtotalAmount(subtotal);
-        order.setDiscountAmount(totalDiscount);
-        order.setTaxAmount(taxAmount);
-        order.setTotalAmount(totalAmount);
+        Order order = buildBaseOrder(stripeCustomer);
+        order.setSubtotal(subtotal);
+        order.setTotal(total);
+        order.setShipping(shippingCost);
+        order.addAllOrderLines(orderItems);
+
         orderRepository.save(order);
     }
 
-    private Order buildBaseOrder(StripeCustomer stripeCustomer, Set<OrderLine> orderLines) {
+
+    private Order buildBaseOrder(StripeCustomer stripeCustomer) {
         return Order.builder()
                 .customer(stripeCustomer)
                 .status(OrderStatus.PENDING)
-                .orderLines(orderLines)
                 .currency("USD")
                 .build();
     }
 
-    private BigDecimal getOrderLineDiscount(BigDecimal discountPercentage, BigDecimal lineSubtotal) {
-        BigDecimal discountPct = discountPercentage != null
-                ? discountPercentage
-                : BigDecimal.ZERO;
 
-        return lineSubtotal
-                .multiply(discountPct)
-                .divide(BigDecimal.valueOf(100), SCALE, ROUNDING);
-    }
-
-
-    public void cancelOrder() {
-
+    @Transactional
+    public void cancelOrder(UUID orderUUID) {
+        Order order = orderRepository.findOrderByUuid(orderUUID)
+                .orElseThrow(() -> new EntityNotFoundException("Order not found"));
+        
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
     }
 
     public void updateOrder() {
 
     }
 
-    public Product decreaseStock(String sku, int qty) {
+    public void decreaseStock(String sku, int quantity) {
         Product product = productRepository.findProductBySku(sku)
                 .orElseThrow(() -> new EntityNotFoundException("Products not found"));
 
-        if (product.getStock() < qty) {
-            throw new IllegalStateException("Out of stock");
+        if (product.getStock() < quantity) {
+            throw new IllegalStateException("Product " + product.getSku() + " is out of stock");
         }
 
-        product.setStock(product.getStock() - qty);
-        return product;
+        product.setStock(product.getStock() - quantity);
+        productRepository.save(product);
     }
 
 }
