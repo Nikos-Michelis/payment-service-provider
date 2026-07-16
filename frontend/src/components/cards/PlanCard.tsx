@@ -36,7 +36,7 @@ interface SessionResponse {
 }
 
 const BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL;
-const CREATE_SUBSCRIPTION_URL = `${BASE_URL}/stripe/payment/subscription/new`;
+const CREATE_SUBSCRIPTION_URL = `${BASE_URL}/stripe/payment/subscription/checkout`;
 
 const PlanCard: React.FC<PlanCardProps> = (
     {

@@ -91,13 +91,13 @@ public class AuthenticationService {
 
         userRepository.save(newUser);
         OtpToken otpToken = otpServiceProvider.issueOtpCode(newUser, OtpType.REGISTER);
-       /* otpServiceProvider.buildEmail(
+        otpServiceProvider.buildEmail(
                 newUser,
                 otpToken,
                 EmailDetails.builder()
                         .subject("Account Verification")
                         .emailTemplateName(EmailTemplateName.VERIFY_ACCOUNT)
-                        .build());*/
+                        .build());
         return otpToken;
     }
 

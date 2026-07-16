@@ -19,7 +19,7 @@ import java.util.UUID;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserDTO implements DTOEntity {
     @JsonProperty("id")
-    private UUID userId;
+    private UUID uuid;
     @JsonProperty("username")
     private String username;
     @JsonProperty("email")

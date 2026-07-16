@@ -25,7 +25,7 @@ const ForgotPasswordForm = ({serverError, onForgot, onError, }: AuthFormProps) =
     })
 
     const forgotPasswordMutation = useCreateMutation({
-        successMessage: undefined
+        successMessage: undefined,
     });
     const isPending = forgotPasswordMutation.isPending;
 

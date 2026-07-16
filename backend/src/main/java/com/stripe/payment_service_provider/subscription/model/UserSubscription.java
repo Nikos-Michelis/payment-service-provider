@@ -1,11 +1,10 @@
 package com.stripe.payment_service_provider.subscription.model;
 
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
-import com.stripe.payment_service_provider.payment.model.StripeCustomer;
-import com.stripe.payment_service_provider.payment.model.StripeInvoice;
+import com.stripe.payment_service_provider.payment.api.model.StripeCustomer;
+import com.stripe.payment_service_provider.payment.api.model.StripeInvoice;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;
@@ -52,7 +51,7 @@ public class UserSubscription extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH } )
     @JoinColumn(name = "customer_id", nullable = false)
-    private StripeCustomer stripeCustomer;
+    private StripeCustomer customer;
     @OneToMany(mappedBy = "subscription")
     private Set<StripeInvoice> stripeInvoices = new HashSet<>();
 

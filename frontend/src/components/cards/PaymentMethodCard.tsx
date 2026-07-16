@@ -4,8 +4,6 @@ import type {PaymentMethodProps} from "@/components/cards/interface/PaymentMetho
 import {Button} from "@/components/ui/button.tsx";
 import {PaymentIcon} from "react-svg-credit-card-payment-icons";
 import {useCreateMutation} from "@/services/mutations.ts";
-import React from "react";
-
 
 interface SessionResponse {
     session_url: string;

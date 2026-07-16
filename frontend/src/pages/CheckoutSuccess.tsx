@@ -29,9 +29,6 @@ const CheckoutSuccess = () => {
         url: `${CHECKOUT_SUCCESS_URL}/${sessionId}`,
         params: `invoices-${sessionId}`,
         cacheKey: "invoices",
-        queryOptions:{
-            enabled: !!sessionId
-        },
         enableBoundary: false
     });
 

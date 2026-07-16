@@ -124,7 +124,7 @@ public class UserServiceImpl implements UserService {
                 .map(Roles::getName)
                 .collect(Collectors.toSet());
         return UserDTO.builder()
-                .userId(user.getUuid())
+                .uuid(user.getUuid())
                 .username(user.getNickname())
                 .email(user.getEmail())
                 .role(roles)

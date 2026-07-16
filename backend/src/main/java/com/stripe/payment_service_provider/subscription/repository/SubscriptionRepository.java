@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface SubscriptionRepository extends JpaRepository<UserSubscription, String> {
-    Optional<UserSubscription> findUserSubscriptionsByStripeCustomer_StripeCustomerId(String StripeCustomerId);
+public interface SubscriptionRepository extends JpaRepository<UserSubscription, Long> {
+    Optional<UserSubscription> findUserSubscriptionsByCustomer_StripeCustomerId(String StripeCustomerId);
     Optional<UserSubscription> findUserSubscriptionsByStripeSubscriptionId(String stripeSubscriptionId);
 }

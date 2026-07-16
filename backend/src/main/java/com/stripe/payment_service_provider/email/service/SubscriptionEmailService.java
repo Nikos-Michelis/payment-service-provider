@@ -1,8 +1,6 @@
 package com.stripe.payment_service_provider.email.service;
 
-import com.stripe.payment_service_provider.subscription.model.UserSubscription;
-import com.stripe.payment_service_provider.payment.dto.email.SubscriptionEmailContext;
-import com.stripe.model.Invoice;
+import com.stripe.payment_service_provider.payment.api.dto.email.SubscriptionEmailContext;
 
 public interface SubscriptionEmailService {
     void sendSubscriptionSuccessEmail(SubscriptionEmailContext context);

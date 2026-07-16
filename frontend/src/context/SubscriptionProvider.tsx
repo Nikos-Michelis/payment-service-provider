@@ -1,25 +1,30 @@
 import {createContext, useMemo} from "react";
-import {useParameterizedQuery} from "@/services/queries.ts";
+import { useSimpleQuery } from "@/services/queries.ts";
 import type {Subscription} from "@/pages/interface/ProfileProps.ts";
+import useAuth from "@/hooks/useAuth.ts";
 
 export const SubscriptionContext = createContext(null);
 
 const BASE_URL  = import.meta.env.VITE_BACKEND_BASE_URL;
-const SUBSCRIPTION_URL = `${BASE_URL}/stripe/payment/subscription/list`
+const SUBSCRIPTION_URL = `${BASE_URL}/stripe/payment/subscriptions`
 
 export const SubscriptionProvider = ({ children }) => {
-
-    const subscriptionQueryData = useParameterizedQuery<Subscription[]>({
+    const { user } = useAuth();
+    const subscriptionQueryData = useSimpleQuery<Subscription[]>({
         url: `${SUBSCRIPTION_URL}`,
-        params: `subscription`,
         cacheKey: "subscription",
-        queryOptions: {
-            suspense: true
+        queryOptions:{
+            enabled: !!user,
+            retry: false
         },
-        enableBoundary: false
     });
 
-    const providerValues = useMemo(()=> ({ subscriptionQueryData }),[subscriptionQueryData])
+    const subscription = subscriptionQueryData?.data?.[0];
+    const payment_method = subscription?.payment_method;
+
+    const providerValues = useMemo(() =>
+        ({subscription, payment_method}), [subscription, payment_method]
+    );
 
     return (
         <SubscriptionContext.Provider value={providerValues}>

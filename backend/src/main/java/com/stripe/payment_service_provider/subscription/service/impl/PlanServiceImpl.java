@@ -1,7 +1,9 @@
 package com.stripe.payment_service_provider.subscription.service.impl;
 
+import com.stripe.model.Event;
 import com.stripe.model.Price;
 import com.stripe.model.Product;
+import com.stripe.payment_service_provider.settings.exceptions.common.ConflictException;
 import com.stripe.payment_service_provider.subscription.model.BillingCycle;
 import com.stripe.payment_service_provider.subscription.model.PlanType;
 import com.stripe.payment_service_provider.subscription.model.StripePlan;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -40,44 +43,70 @@ public class PlanServiceImpl implements PlanService {
     }
 
     @Transactional
-    public void deletePlan(Product product) {
+    public void onPlanCreate(Event event) {
+        Product product = handleProductEvent(event);
+        Optional<StripePlan> stripePlan = planRepository.findSubscriptionPlanByStripeProductId(product.getId());
+        if (stripePlan.isPresent()) {
+            throw new ConflictException("Product already exists");
+        }
+
+        StripePlan newStripePlan = populatePlan(new StripePlan(), product);
+        planRepository.save(newStripePlan);
+    }
+
+    @Transactional
+    public void onPlanUpdate(Event event) {
+        Product product = handleProductEvent(event);
         StripePlan stripePlan = planRepository.findSubscriptionPlanByStripeProductId(product.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Plan not found for product id: " + product.getId()));
-        planRepository.delete(stripePlan);
+
+        StripePlan updatedStripePlan = populatePlan(stripePlan, product);
+        planRepository.save(updatedStripePlan);
     }
 
     @Transactional
-    public void createOrUpdatePlan(Product product) {
-        StripePlan stripePlan = planRepository.findSubscriptionPlanByStripeProductId(product.getId())
-                .orElseGet(() -> StripePlan.builder().build());
+    public void onPriceCreate(Event event) {
+        Price price = handlePriceEvent(event);
+        Optional<StripePrice> stripePrice = priceRepository.findStripePriceByStripePriceId(price.getId());
 
-        stripePlan.setStripeProductId(product.getId());
-        stripePlan.setName(product.getName());
-        stripePlan.setDescription(product.getDescription());
-        stripePlan.setFeatures(Arrays.stream(product.getMarketingFeatures().toArray()).toList());
-        stripePlan.setActive(true);
-        StripePlan populatedStripePlan = populatePlanMetaData(stripePlan, product);
-
-        planRepository.save(populatedStripePlan);
-    }
-
-    @Transactional
-    public void createOrUpdatePrice(Price price) {
-        StripePrice stripePrice = priceRepository.findStripePriceByStripePriceId(price.getId())
-                .orElseGet(StripePrice::new);
+        if (stripePrice.isPresent()) {
+            throw new ConflictException("Price already exists");
+        }
 
         StripePlan stripePlan = planRepository.findSubscriptionPlanByStripeProductId(price.getProduct())
                 .orElseThrow(() -> new ResourceNotFoundException("Plan not found for product id: " + price.getProduct()));
 
-        stripePrice.setStripePlan(stripePlan);
+        StripePrice newStripePrice = populatePrice(new StripePrice(), price);
+        newStripePrice.setStripePlan(stripePlan);
+        priceRepository.save(newStripePrice);
+    }
+
+    @Transactional
+    public void onPriceUpdate(Event event) {
+        Price price = handlePriceEvent(event);
+        StripePrice stripePrice = priceRepository.findStripePriceByStripePriceId(price.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Price not found for price id: " + price.getId()));
+
+        StripePrice newStripePrice = populatePrice(stripePrice, price);
+        priceRepository.save(newStripePrice);
+    }
+
+    private StripePrice populatePrice(StripePrice stripePrice, Price price) {
         stripePrice.setStripePriceId(price.getId());
         stripePrice.setAmount(price.getUnitAmountDecimal());
         stripePrice.setCurrency(price.getCurrency());
         stripePrice.setBillingCycle(BillingCycle.valueOf(price.getRecurring().getInterval().toUpperCase()));
         stripePrice.setActive(price.getActive());
+        return stripePrice;
+    }
 
-        priceRepository.save(stripePrice);
-
+    private StripePlan populatePlan(StripePlan stripePlan, Product product) {
+        stripePlan.setStripeProductId(product.getId());
+        stripePlan.setName(product.getName());
+        stripePlan.setDescription(product.getDescription());
+        stripePlan.setFeatures(Arrays.stream(product.getMarketingFeatures().toArray()).toList());
+        stripePlan.setActive(true);
+        return populatePlanMetaData(stripePlan, product);
     }
 
     public StripePlan populatePlanMetaData(StripePlan subscriptionStripePlan, Product product) {
@@ -104,6 +133,16 @@ public class PlanServiceImpl implements PlanService {
         PlanType planType = PlanType.valueOf(plan.toUpperCase());
         subscriptionStripePlan.setPlanType(planType);
         return subscriptionStripePlan;
+    }
+
+    private Price handlePriceEvent(Event event) {
+        return (Price) event.getDataObjectDeserializer().getObject()
+                .orElseThrow(() -> new ResourceNotFoundException("Price not found"));
+    }
+
+    private Product handleProductEvent(Event event) {
+        return (Product) event.getDataObjectDeserializer().getObject()
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 
 }

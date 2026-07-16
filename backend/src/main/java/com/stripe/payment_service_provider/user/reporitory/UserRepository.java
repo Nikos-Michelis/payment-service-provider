@@ -12,7 +12,7 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
-        SELECT u 
+        SELECT u
         FROM User u
         INNER JOIN FETCH u.entryMethods s
         INNER JOIN FETCH u.roles r

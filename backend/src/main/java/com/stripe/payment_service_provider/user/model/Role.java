@@ -14,6 +14,7 @@ import static com.stripe.payment_service_provider.user.model.Permissions.*;
 @RequiredArgsConstructor
 @Getter
 public enum Role {
+    GUEST(Collections.emptySet()),
     USER(Collections.emptySet()),
     DEVELOPER(
             Set.of(

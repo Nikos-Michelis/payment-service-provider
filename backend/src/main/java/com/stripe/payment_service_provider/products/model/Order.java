@@ -1,41 +1,39 @@
 package com.stripe.payment_service_provider.products.model;
 
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
+import com.stripe.payment_service_provider.payment.api.model.StripeCustomer;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "orders")
 public class Order extends BaseEntity {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id", nullable = false)
     private Long id;
 
-    @Size(max = 36)
-    @NotNull
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
     @Column(name = "uuid", nullable = false, length = 36)
     private String uuid;
 
-    @NotNull
-    @Column(name = "customer_id", nullable = false)
-    private Long customerId;
-
-    @NotNull
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
-    @Lob
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private OrderStatus status;
 
     @Size(max = 3)
     @NotNull
@@ -44,28 +42,17 @@ public class Order extends BaseEntity {
 
     @NotNull
     @ColumnDefault("0.00")
-    @Column(name = "subtotal_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal subtotalAmount;
+    @Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
+    private BigDecimal subtotal;
+
+    @ColumnDefault("0.00")
+    @Column(name = "shipping", nullable = false, precision = 10, scale = 2)
+    private BigDecimal shipping;
 
     @NotNull
     @ColumnDefault("0.00")
-    @Column(name = "tax_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal taxAmount;
-
-    @NotNull
-    @ColumnDefault("0.00")
-    @Column(name = "shipping_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal shippingAmount;
-
-    @NotNull
-    @ColumnDefault("0.00")
-    @Column(name = "discount_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal discountAmount;
-
-    @NotNull
-    @ColumnDefault("0.00")
-    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;
+    @Column(name = "total", nullable = false, precision = 10, scale = 2)
+    private BigDecimal total;
 
     @Size(max = 255)
     @Column(name = "tracking_number")
@@ -87,4 +74,24 @@ public class Order extends BaseEntity {
 
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "customer_id", nullable = false)
+    private StripeCustomer customer;
+
+
+    @Builder.Default
+    @OneToMany(mappedBy = "order", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH }, orphanRemoval = true)
+    private Set<OrderItem> orderItems = new LinkedHashSet<>();
+
+    public void addOrderLine(OrderItem orderItem) {
+        this.orderItems.add(orderItem);
+        orderItem.setOrder(this);
+    }
+
+    public void addAllOrderLines(Set<OrderItem> orderItems) {
+        orderItems.forEach(this::addOrderLine);
+    }
+
 }
