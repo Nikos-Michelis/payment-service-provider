@@ -32,6 +32,7 @@ const OrderCard = ({ subtotal }: OrderSummaryProps) => {
         stripeCustomerPortalMutation.mutate(
             {
                 url: CHECKOUT_URL,
+                data: {shipperUUID: '9044308b-8053-11f1-90ba-a85e456d432d' },
                 options: {
                     withBearer: true,
                     withIdempotency: true

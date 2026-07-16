@@ -1,12 +1,13 @@
 package com.stripe.payment_service_provider.products.service;
 
-import com.stripe.payment_service_provider.products.dto.TotalCostDTO;
+import com.stripe.payment_service_provider.products.dto.TotalCost;
 import com.stripe.payment_service_provider.products.dto.TotalItemCost;
-import com.stripe.payment_service_provider.products.model.Cart;
+import com.stripe.payment_service_provider.products.model.LineItem;
 import com.stripe.payment_service_provider.products.model.Product;
 
+import java.util.Collection;
+
 public interface PricingService {
-    TotalCostDTO calculateCartCost(Cart cart);
-    TotalCostDTO calculateOrderCost(Cart cart);
+    TotalCost calculateTotal(Collection<? extends LineItem> lineItems);
     TotalItemCost calculateItemCost(Product product, Integer quantity);
 }

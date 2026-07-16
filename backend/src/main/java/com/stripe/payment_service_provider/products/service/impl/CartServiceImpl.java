@@ -1,7 +1,7 @@
 package com.stripe.payment_service_provider.products.service.impl;
 
 import com.stripe.payment_service_provider.products.dto.CartDTO;
-import com.stripe.payment_service_provider.products.dto.TotalCostDTO;
+import com.stripe.payment_service_provider.products.dto.TotalCost;
 import com.stripe.payment_service_provider.products.dto.request.CartItemRequest;
 import com.stripe.payment_service_provider.products.mappers.CartObjectMapper;
 import com.stripe.payment_service_provider.products.model.Cart;
@@ -42,8 +42,8 @@ public class CartServiceImpl implements CartService {
                 .mapToInt(CartItem::getQuantity)
                 .sum();
 
-        TotalCostDTO totalCostDTO = pricingService.calculateCartCost(cart);
-        return new CartDTO(cartDTO.uuid(), totalItems, totalCostDTO.subtotal(), totalCostDTO.total(), cartDTO.cartItems());
+        TotalCost totalCost = pricingService.calculateTotal(cart.getCartItems());
+        return new CartDTO(cartDTO.uuid(), totalItems, totalCost.subtotal(), totalCost.total(), cartDTO.cartItems());
     }
 
     @Transactional
@@ -118,12 +118,12 @@ public class CartServiceImpl implements CartService {
 
         if (product.getStock() < item.quantity()) {
             throw new RuntimeException("Requested quantity for "
-                    + product.getTitle() + " is not available, please decrease the quantity.");
+                    + product.getSku() + " is not available, please decrease the quantity.");
         }
 
         if (product.getStock() < cartItem.getQuantity()) {
             throw new RuntimeException("Requested quantity for "
-                    + product.getTitle() + " is not available, please decrease the quantity.");
+                    + product.getSku() + " is not available, please decrease the quantity.");
         }
 
         cartItem.setQuantity(item.quantity());
@@ -137,6 +137,4 @@ public class CartServiceImpl implements CartService {
                 .quantity(quantity)
                 .build();
     }
-
-
 }

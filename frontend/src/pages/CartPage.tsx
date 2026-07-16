@@ -1,7 +1,7 @@
 import { NavLink } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {Trash2, Mail, ShoppingCart, Loader2} from "lucide-react";
+import {Trash2, Mail, ShoppingCart} from "lucide-react";
 import useCart from "@/hooks/useCart.ts";
 import OrderCard from "@/components/cards/OrderCard";
 import CartItem from "@/components/line/CartItem";

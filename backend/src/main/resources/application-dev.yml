@@ -74,7 +74,6 @@ spring:
     listener:
       ack-mode: manual
     topics:
-      subscriptions: stripe.subscriptions
       products: stripe.products
       customers: stripe.customers
       payments: stripe.payments

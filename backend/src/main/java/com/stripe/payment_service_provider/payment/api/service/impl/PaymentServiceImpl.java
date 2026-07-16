@@ -10,11 +10,11 @@ import com.stripe.payment_service_provider.payment.api.repository.CustomerPortal
 import com.stripe.payment_service_provider.payment.api.util.CheckoutSessionUtil;
 import com.stripe.payment_service_provider.payment.api.util.CustomerUtil;
 import com.stripe.payment_service_provider.payment.api.service.PaymentService;
-import com.stripe.payment_service_provider.products.dto.TotalCostDTO;
-import com.stripe.payment_service_provider.products.dto.TotalItemCost;
+import com.stripe.payment_service_provider.products.dto.request.ShippingMethodRequest;
 import com.stripe.payment_service_provider.products.model.*;
 import com.stripe.payment_service_provider.products.repository.CartRepository;
 import com.stripe.payment_service_provider.products.repository.ProductRepository;
+import com.stripe.payment_service_provider.products.repository.ShipperRepository;
 import com.stripe.payment_service_provider.products.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,8 +30,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
-    private static final int SCALE = 2;
-    private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
     private final CheckoutSessionUtil checkoutSessionUtil;
     private final CustomerUtil customerUtil;
     private final ProductRepository productRepository;
@@ -42,7 +39,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Transactional
     @Override
-    public String createOneOffPayment(String email, String idempotencyKey) throws StripeException {
+    public String createOneOffPayment(String email, String idempotencyKey, ShippingMethodRequest shippingMethodRequest) throws StripeException {
 
         Optional<CustomerPortal> existingSession = customerPortalRepository.findCustomerPortalByIdempotencyKey(idempotencyKey);
         if (existingSession.isPresent()) {
@@ -50,7 +47,6 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         StripeCustomer stripeCustomer = customerUtil.findOrCreateStripeCustomer(email);
-
         Cart cart = cartRepository.findCartByUser_id(stripeCustomer.getUser().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
@@ -63,33 +59,10 @@ public class PaymentServiceImpl implements PaymentService {
                 SessionCreateParams.Mode.PAYMENT,
                 stripeCustomer.getStripeCustomerId()
         );
-        // TODO add shipping providers and supported countries
-        paramsBuilder.setBillingAddressCollection(SessionCreateParams.BillingAddressCollection.REQUIRED);
-        paramsBuilder.setShippingAddressCollection(
-                SessionCreateParams.ShippingAddressCollection.builder()
-                        .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.US)
-                        .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.GR)
-                        .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.FR)
-                        .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.GE)
-                        .build()
-        );
-        SessionCreateParams.ShippingOption shippingOption = checkoutSessionUtil.buildShippingOption();
-        paramsBuilder.addShippingOption(shippingOption);
 
-        paramsBuilder.setCustomerUpdate(
-                SessionCreateParams.CustomerUpdate.builder()
-                        .setShipping(SessionCreateParams.CustomerUpdate.Shipping.AUTO)
-                        .build()
-        );
-
-        Set<OrderItem> orderItems = buildOrderItems(cartItems);
-
-        for (var cartItem : cartItems) {
-            Product product = productRepository.findProductBySku(cartItem.getProduct().getSku())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-            SessionCreateParams.LineItem lineItem = buildLineItem(product, cartItem.getQuantity());
-            paramsBuilder.addLineItem(lineItem);
-        }
+        Set<OrderItem> orderItems = orderService.buildOrderItems(cartItems);
+        List<SessionCreateParams.LineItem> lineItems =  buildLineItemCollection(orderItems);
+        paramsBuilder.addAllLineItem(lineItems);
 
         orderService.createOrder(stripeCustomer, orderItems);
 
@@ -102,54 +75,6 @@ public class PaymentServiceImpl implements PaymentService {
         return session.getUrl();
     }
 
-    private Set<OrderItem> buildOrderItems(Set<CartItem> cartItems) {
-        Set<OrderItem> orderItems = new HashSet<>();
-
-        for (CartItem cartItem : cartItems) {
-            Product product = productRepository.findProductBySku(cartItem.getProduct().getSku())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-            int quantity = cartItem.getQuantity();
-            TotalItemCost itemCost = calculateItemCost(product, quantity);
-            OrderItem orderItem = buildOrderItem(product, quantity, itemCost.total());
-            orderItems.add(orderItem);
-        }
-
-        return orderItems;
-    }
-
-    private OrderItem buildOrderItem(Product product, int quantity, BigDecimal totalAmount) {
-        return OrderItem.builder()
-                .product(product)
-                .amount(product.getPrice())
-                .discount(product.getDiscountPercentage())
-                .tax(product.getTax())
-                .quantity(quantity)
-                .total(totalAmount)
-                .build();
-    }
-
-    private TotalItemCost calculateItemCost(Product product, Integer quantity) {
-        BigDecimal subtotal = product.getPrice()
-                .multiply(BigDecimal.valueOf(quantity));
-
-        BigDecimal discountRate = BigDecimal.valueOf(product.getDiscountPercentage())
-                .divide(BigDecimal.valueOf(100), SCALE, ROUNDING);
-
-        BigDecimal discount = subtotal.multiply(discountRate);
-
-        BigDecimal taxableAmount = subtotal.subtract(discount);
-
-        BigDecimal taxRate = BigDecimal.valueOf(product.getTax())
-                .divide(BigDecimal.valueOf(100), SCALE, ROUNDING);
-
-        BigDecimal tax = taxableAmount.multiply(taxRate);
-
-        BigDecimal total = taxableAmount.add(tax);
-        return new TotalItemCost(subtotal, discount, tax, total);
-    }
-
-
     private CustomerPortal buildCustomerPortal(StripeCustomer stripeCustomer, Session session, String idempotencyKey) {
         return CustomerPortal.builder()
                 .customer(stripeCustomer)
@@ -160,21 +85,42 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
     }
 
+   /* private List<SessionCreateParams.ShippingOption> buildShippingOptionCollection(Set<ShipperHasCountry> shipperHasCountries) {
+        List<SessionCreateParams.ShippingOption> shippingOptions = new ArrayList<>();
+
+        for (ShipperHasCountry shipperCountries : shipperHasCountries) {
+            SessionCreateParams.ShippingOption shippingOption = checkoutSessionUtil.buildShippingOption(
+                    shipperCountries.getCurrency(), shipperCountries.getTotal(), shipperCountries.getShipper().getName());
+
+            shippingOptions.add(shippingOption);
+        }
+
+        return shippingOptions;
+    }*/
+
+    private List<SessionCreateParams.LineItem> buildLineItemCollection(Set<OrderItem> orderItems){
+        List<SessionCreateParams.LineItem> lineItems = new ArrayList<>();
+        for (var cartItem : orderItems) {
+            Product product = productRepository.findProductBySku(cartItem.getProduct().getSku())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            SessionCreateParams.LineItem lineItem = buildLineItem(product, cartItem.getQuantity());
+            lineItems.add(lineItem);
+        }
+        return lineItems;
+    }
+
     private SessionCreateParams.LineItem buildLineItem(Product product, long quantity) {
         SessionCreateParams.LineItem.PriceData.ProductData productData =
                 SessionCreateParams.LineItem.PriceData.ProductData.builder()
                         .setName(product.getTitle())
                         .setDescription(product.getDescription())
-
                         .addAllImage(product.getImages().stream().map(ProductImage::getImageUrl).collect(Collectors.toList()))
                         .putMetadata("sku", product.getSku())
                         .build();
 
         SessionCreateParams.LineItem.PriceData priceData =
                 SessionCreateParams.LineItem.PriceData.builder()
-                        .setUnitAmount(
-                                product.getPrice().multiply(BigDecimal.valueOf(100)).longValue()
-                        )
+                        .setUnitAmount(product.getPrice().multiply(BigDecimal.valueOf(100)).longValue())
                         .setCurrency("USD")
                         .setProductData(productData)
                         .build();

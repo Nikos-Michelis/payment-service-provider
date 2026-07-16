@@ -4,11 +4,16 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.stripe.payment_service_provider.products.model.Country;
+import com.stripe.payment_service_provider.products.model.ShipperHasCountry;
 import com.stripe.payment_service_provider.settings.exceptions.stripe.StripeSessionException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import com.stripe.param.checkout.SessionCreateParams.SavedPaymentMethodOptions.AllowRedisplayFilter;
+
+import java.math.BigDecimal;
+import java.util.Set;
 
 @Component
 public class CheckoutSessionUtil {
@@ -35,18 +40,29 @@ public class CheckoutSessionUtil {
                 .setCancelUrl(clientBaseURL + "/failure");
     }
 
-    public SessionCreateParams.ShippingOption buildShippingOption() {
+    public SessionCreateParams.ShippingAddressCollection buildShippingAddressCollection(Set<ShipperHasCountry> shipperHasCountries) {
+
+        SessionCreateParams.ShippingAddressCollection.Builder builder = SessionCreateParams.ShippingAddressCollection.builder();
+        for (ShipperHasCountry shipperCountry : shipperHasCountries) {
+            String countryCode = shipperCountry.getCountry().getCode();
+            builder.addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.valueOf(countryCode));
+        }
+
+        return builder.build();
+    }
+
+
+    public SessionCreateParams.ShippingOption buildShippingOption(BigDecimal total, String name) {
         return SessionCreateParams.ShippingOption.builder()
                 .setShippingRateData(
                         SessionCreateParams.ShippingOption.ShippingRateData.builder()
-                                .setDisplayName("Standard Shipping")
+                                .setDisplayName(name)
                                 .setType(
                                         SessionCreateParams.ShippingOption.ShippingRateData.Type.FIXED_AMOUNT
                                 )
                                 .setFixedAmount(
                                         SessionCreateParams.ShippingOption.ShippingRateData.FixedAmount.builder()
-                                                .setAmount(500L)
-                                                .setCurrency("USD")
+                                                .setAmount(total.toBigInteger().longValue())
                                                 .build()
                                 )
                                 .build()
