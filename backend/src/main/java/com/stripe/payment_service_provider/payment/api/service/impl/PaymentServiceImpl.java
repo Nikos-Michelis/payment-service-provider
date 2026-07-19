@@ -4,17 +4,18 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.stripe.payment_service_provider.payment.api.dto.payment.request.OneOffPaymentRequest;
 import com.stripe.payment_service_provider.payment.api.model.CustomerPortal;
 import com.stripe.payment_service_provider.payment.api.model.StripeCustomer;
 import com.stripe.payment_service_provider.payment.api.repository.CustomerPortalRepository;
 import com.stripe.payment_service_provider.payment.api.util.CheckoutSessionUtil;
 import com.stripe.payment_service_provider.payment.api.util.CustomerUtil;
 import com.stripe.payment_service_provider.payment.api.service.PaymentService;
-import com.stripe.payment_service_provider.products.dto.request.ShippingMethodRequest;
 import com.stripe.payment_service_provider.products.model.*;
+import com.stripe.payment_service_provider.products.repository.AddressRepository;
 import com.stripe.payment_service_provider.products.repository.CartRepository;
 import com.stripe.payment_service_provider.products.repository.ProductRepository;
-import com.stripe.payment_service_provider.products.repository.ShipperRepository;
+import com.stripe.payment_service_provider.products.repository.ShipperRatesRepository;
 import com.stripe.payment_service_provider.products.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,10 +37,12 @@ public class PaymentServiceImpl implements PaymentService {
     private final CustomerPortalRepository customerPortalRepository;
     private final CartRepository cartRepository;
     private final OrderService orderService;
+    private final ShipperRatesRepository shipperRatesRepository;
+    private final AddressRepository addressRepository;
 
     @Transactional
     @Override
-    public String createOneOffPayment(String email, String idempotencyKey, ShippingMethodRequest shippingMethodRequest) throws StripeException {
+    public String createOneOffPayment(String email, String idempotencyKey, OneOffPaymentRequest oneOffPaymentRequest) throws StripeException {
 
         Optional<CustomerPortal> existingSession = customerPortalRepository.findCustomerPortalByIdempotencyKey(idempotencyKey);
         if (existingSession.isPresent()) {
@@ -47,32 +50,55 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         StripeCustomer stripeCustomer = customerUtil.findOrCreateStripeCustomer(email);
-        Cart cart = cartRepository.findCartByUser_id(stripeCustomer.getUser().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
-        Set<CartItem> cartItems = cart.getCartItems();
-        if (cartItems.isEmpty()) {
-            throw new IllegalStateException("Order line not found");
-        }
+        Address address = addressRepository.findAddressByUuidAndUser_id(oneOffPaymentRequest.addressUUID(), stripeCustomer.getUser().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
 
-        SessionCreateParams.Builder paramsBuilder = checkoutSessionUtil.buildCheckoutSession(
-                SessionCreateParams.Mode.PAYMENT,
-                stripeCustomer.getStripeCustomerId()
-        );
+        Set<CartItem> cartItems = retrieveCartItems(stripeCustomer);
+
+        ShippingRates shippingRates = shipperRatesRepository.findShipperByUuidAndCountryCode(oneOffPaymentRequest.shipperUUID(), oneOffPaymentRequest.countryCode())
+                .orElseThrow(() -> new ResourceNotFoundException("Shipper not found"));
 
         Set<OrderItem> orderItems = orderService.buildOrderItems(cartItems);
-        List<SessionCreateParams.LineItem> lineItems =  buildLineItemCollection(orderItems);
-        paramsBuilder.addAllLineItem(lineItems);
+        Order order = orderService.createOrder(stripeCustomer, orderItems, shippingRates.getTotal(), address);
 
-        orderService.createOrder(stripeCustomer, orderItems);
-
+        SessionCreateParams params = buildSessionParams(stripeCustomer, shippingRates, orderItems, order);
         RequestOptions requestOptions = checkoutSessionUtil.getIdempotencyKey(idempotencyKey);
-        Session session = Session.create(paramsBuilder.build(), requestOptions);
+        Session session = Session.create(params, requestOptions);
 
         CustomerPortal customerPortal = buildCustomerPortal(stripeCustomer, session, idempotencyKey);
         customerPortalRepository.save(customerPortal);
 
         return session.getUrl();
+    }
+
+    private Set<CartItem> retrieveCartItems(StripeCustomer stripeCustomer) {
+        Cart cart = cartRepository.findCartByUser_id(stripeCustomer.getUser().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+
+        Set<CartItem> cartItems = cart.getCartItems();
+        if (cartItems.isEmpty()) {
+            throw new IllegalStateException("Empty cart items");
+        }
+
+        return cartItems;
+    }
+
+    private SessionCreateParams buildSessionParams(StripeCustomer stripeCustomer, ShippingRates shippingRates, Set<OrderItem> orderItems, Order order) {
+        SessionCreateParams.Builder paramsBuilder = checkoutSessionUtil.buildCheckoutSession(
+                SessionCreateParams.Mode.PAYMENT,
+                stripeCustomer.getStripeCustomerId()
+        );
+
+        paramsBuilder.addShippingOption(checkoutSessionUtil.buildShippingOption(shippingRates));
+        paramsBuilder.addAllLineItem(buildLineItemCollection(orderItems));
+        paramsBuilder.setPaymentIntentData(
+                SessionCreateParams.PaymentIntentData.builder()
+                        .putMetadata("order_id", order.getUuid())
+                        .build()
+        );
+
+        return paramsBuilder.build();
     }
 
     private CustomerPortal buildCustomerPortal(StripeCustomer stripeCustomer, Session session, String idempotencyKey) {
@@ -84,19 +110,6 @@ public class PaymentServiceImpl implements PaymentService {
                 .sessionUrl(session.getUrl())
                 .build();
     }
-
-   /* private List<SessionCreateParams.ShippingOption> buildShippingOptionCollection(Set<ShipperHasCountry> shipperHasCountries) {
-        List<SessionCreateParams.ShippingOption> shippingOptions = new ArrayList<>();
-
-        for (ShipperHasCountry shipperCountries : shipperHasCountries) {
-            SessionCreateParams.ShippingOption shippingOption = checkoutSessionUtil.buildShippingOption(
-                    shipperCountries.getCurrency(), shipperCountries.getTotal(), shipperCountries.getShipper().getName());
-
-            shippingOptions.add(shippingOption);
-        }
-
-        return shippingOptions;
-    }*/
 
     private List<SessionCreateParams.LineItem> buildLineItemCollection(Set<OrderItem> orderItems){
         List<SessionCreateParams.LineItem> lineItems = new ArrayList<>();
@@ -121,7 +134,7 @@ public class PaymentServiceImpl implements PaymentService {
         SessionCreateParams.LineItem.PriceData priceData =
                 SessionCreateParams.LineItem.PriceData.builder()
                         .setUnitAmount(product.getPrice().multiply(BigDecimal.valueOf(100)).longValue())
-                        .setCurrency("USD")
+                        .setCurrency("EUR")
                         .setProductData(productData)
                         .build();
 

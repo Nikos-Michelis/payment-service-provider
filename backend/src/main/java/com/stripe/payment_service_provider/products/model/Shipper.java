@@ -8,9 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
-import java.time.Instant;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Getter
@@ -60,5 +58,5 @@ public class Shipper extends BaseEntity {
     private Set<OrderHasShipment> orderHasShipments = new HashSet<>();
 
     @OneToMany(mappedBy = "shipper")
-    private Set<ShipperHasCountry> shipperHasCountries = new HashSet<>();
+    private Set<ShippingRates> shipperHasCountries = new HashSet<>();
 }

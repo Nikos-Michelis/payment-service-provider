@@ -5,5 +5,8 @@ import jakarta.validation.constraints.Size;
 
 public record ShippingMethodRequest(
         @NotNull
-        String shipperUUID) {
+        String shipperUUID,
+        @NotNull
+        String countryCode
+) {
 }

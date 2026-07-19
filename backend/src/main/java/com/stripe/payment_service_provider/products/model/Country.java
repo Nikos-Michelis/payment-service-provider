@@ -6,9 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
 
-import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -41,7 +39,7 @@ public class Country extends BaseEntity {
     private Set<OrderHasShipment> orderHasShipments = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "country")
-    private Set<ShipperHasCountry> shipperHasCountries = new LinkedHashSet<>();
+    private Set<ShippingRates> shipperHasCountries = new LinkedHashSet<>();
 
 
 }

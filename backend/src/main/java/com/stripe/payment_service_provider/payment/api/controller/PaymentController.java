@@ -1,6 +1,7 @@
 package com.stripe.payment_service_provider.payment.api.controller;
 
 import com.stripe.exception.StripeException;
+import com.stripe.payment_service_provider.payment.api.dto.payment.request.OneOffPaymentRequest;
 import com.stripe.payment_service_provider.payment.api.service.PaymentService;
 import com.stripe.payment_service_provider.products.dto.request.ShippingMethodRequest;
 import com.stripe.payment_service_provider.user.model.User;
@@ -20,9 +21,9 @@ public class PaymentController {
     public ResponseEntity<?> oneOffPayment(
             @AuthenticationPrincipal User user,
             @RequestHeader(value="Idempotency-Key") String idempotencyKey,
-            @RequestBody @Valid ShippingMethodRequest shippingMethodRequest
+            @RequestBody @Valid OneOffPaymentRequest oneOffPaymentRequest
     ) throws StripeException {
-        String response = paymentService.createOneOffPayment(user.getEmail(), idempotencyKey, shippingMethodRequest);
+        String response = paymentService.createOneOffPayment(user.getEmail(), idempotencyKey, oneOffPaymentRequest);
         return ResponseEntity.ok(response);
     }
 }

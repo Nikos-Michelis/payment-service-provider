@@ -27,10 +27,8 @@ public class OrderServiceImpl implements OrderService {
     private final PricingService pricingService;
     private final ProductRepository productRepository;
 
-
     @Transactional
-    public void createOrder(StripeCustomer stripeCustomer, Set<OrderItem> orderItems) {
-        BigDecimal shippingCost = BigDecimal.valueOf(2);
+    public Order createOrder(StripeCustomer stripeCustomer, Set<OrderItem> orderItems, BigDecimal shippingCost, Address address) {
         TotalCost totalCost = pricingService.calculateTotal(orderItems);
 
         Order order = buildOrder(stripeCustomer);
@@ -38,8 +36,9 @@ public class OrderServiceImpl implements OrderService {
         order.setTotal(totalCost.total());
         order.setShipping(shippingCost);
         order.addAllOrderLines(orderItems);
+        order.setAddress(address);
 
-        orderRepository.save(order);
+        return orderRepository.save(order);
     }
 
     @Transactional
@@ -76,7 +75,7 @@ public class OrderServiceImpl implements OrderService {
         return Order.builder()
                 .customer(stripeCustomer)
                 .status(OrderStatus.PENDING)
-                .currency("USD")
+                .currency("EUR")
                 .build();
     }
 

@@ -1,7 +1,9 @@
 package com.stripe.payment_service_provider.user.model;
 
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
+import com.stripe.payment_service_provider.products.model.Address;
 import com.stripe.payment_service_provider.products.model.Cart;
+import com.stripe.payment_service_provider.products.model.Order;
 import com.stripe.payment_service_provider.security.model.EntryMethods;
 import com.stripe.payment_service_provider.security.model.otp.OtpResend;
 import com.stripe.payment_service_provider.security.model.otp.OtpToken;
@@ -91,6 +93,12 @@ public class User extends BaseEntity implements UserDetails, Principal {
 
     @OneToOne(mappedBy = "user")
     private Cart cart;
+
+    @OneToMany(mappedBy = "user")
+    private Set<Address> addresses;
+
+    @OneToMany(mappedBy = "user")
+    private Set<Order> orders = new LinkedHashSet<>();
 
     public void addSignUpProvider(EntryMethods signUpMethod) {
         this.entryMethods.add(signUpMethod);

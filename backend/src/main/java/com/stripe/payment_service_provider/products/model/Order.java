@@ -2,11 +2,14 @@ package com.stripe.payment_service_provider.products.model;
 
 import com.stripe.payment_service_provider.auditing.model.BaseEntity;
 import com.stripe.payment_service_provider.payment.api.model.StripeCustomer;
+import com.stripe.payment_service_provider.user.model.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
@@ -84,6 +87,18 @@ public class Order extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "order", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH }, orphanRemoval = true)
     private Set<OrderItem> orderItems = new LinkedHashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "address_id", nullable = false)
+    private Address address;
+
+    @OneToMany(mappedBy = "order")
+    private Set<OrderHasShipment> orderHasShipments = new LinkedHashSet<>();
 
     public void addOrderLine(OrderItem orderItem) {
         this.orderItems.add(orderItem);

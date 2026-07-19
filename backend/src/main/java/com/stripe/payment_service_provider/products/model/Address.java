@@ -13,6 +13,8 @@ import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
@@ -89,4 +91,8 @@ public class Address extends BaseEntity {
 
     @Column(name = "longitude", precision = 11, scale = 8)
     private BigDecimal longitude;
+
+    @OneToMany(mappedBy = "address")
+    private Set<Order> order = new HashSet<>();
+
 }

@@ -4,21 +4,25 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.checkout.SessionCreateParams;
-import com.stripe.payment_service_provider.products.model.Country;
-import com.stripe.payment_service_provider.products.model.ShipperHasCountry;
+import com.stripe.payment_service_provider.products.model.ShippingRates;
 import com.stripe.payment_service_provider.settings.exceptions.stripe.StripeSessionException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Component;
 import com.stripe.param.checkout.SessionCreateParams.SavedPaymentMethodOptions.AllowRedisplayFilter;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Set;
 
 @Component
+@RequiredArgsConstructor
 public class CheckoutSessionUtil {
     @Value("${application.frontend.url}")
     private String clientBaseURL;
+    private final MonetaryConverterUtil monetaryConverterUtil;
 
 
     public Session createCheckoutSession(SessionCreateParams sessionCreateParams, RequestOptions requestOptions) throws StripeSessionException {
@@ -40,29 +44,18 @@ public class CheckoutSessionUtil {
                 .setCancelUrl(clientBaseURL + "/failure");
     }
 
-    public SessionCreateParams.ShippingAddressCollection buildShippingAddressCollection(Set<ShipperHasCountry> shipperHasCountries) {
-
-        SessionCreateParams.ShippingAddressCollection.Builder builder = SessionCreateParams.ShippingAddressCollection.builder();
-        for (ShipperHasCountry shipperCountry : shipperHasCountries) {
-            String countryCode = shipperCountry.getCountry().getCode();
-            builder.addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.valueOf(countryCode));
-        }
-
-        return builder.build();
-    }
-
-
-    public SessionCreateParams.ShippingOption buildShippingOption(BigDecimal total, String name) {
+    public SessionCreateParams.ShippingOption buildShippingOption(ShippingRates shippingRates) {
         return SessionCreateParams.ShippingOption.builder()
                 .setShippingRateData(
                         SessionCreateParams.ShippingOption.ShippingRateData.builder()
-                                .setDisplayName(name)
+                                .setDisplayName(shippingRates.getShipper().getName())
                                 .setType(
                                         SessionCreateParams.ShippingOption.ShippingRateData.Type.FIXED_AMOUNT
                                 )
                                 .setFixedAmount(
                                         SessionCreateParams.ShippingOption.ShippingRateData.FixedAmount.builder()
-                                                .setAmount(total.toBigInteger().longValue())
+                                                .setAmount(monetaryConverterUtil.toMinorUnits(shippingRates.getTotal()))
+                                                .setCurrency(shippingRates.getCurrency())
                                                 .build()
                                 )
                                 .build()

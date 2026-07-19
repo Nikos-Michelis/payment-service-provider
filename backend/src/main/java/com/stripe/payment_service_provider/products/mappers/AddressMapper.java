@@ -16,12 +16,10 @@ public interface AddressMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "uuid", ignore = true)
     @Mapping(target = "user", ignore = true)
-    @Mapping(target = "isDefault", ignore = true)
     Address toEntity(AddressDTO request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "uuid", ignore = true)
     @Mapping(target = "user", ignore = true)
-    @Mapping(target = "isDefault", ignore = true)
     void updateEntity(AddressDTO request, @MappingTarget Address address);
 }

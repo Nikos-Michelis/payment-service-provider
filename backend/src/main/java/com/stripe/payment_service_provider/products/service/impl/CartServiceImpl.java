@@ -3,6 +3,7 @@ package com.stripe.payment_service_provider.products.service.impl;
 import com.stripe.payment_service_provider.products.dto.CartDTO;
 import com.stripe.payment_service_provider.products.dto.TotalCost;
 import com.stripe.payment_service_provider.products.dto.request.CartItemRequest;
+import com.stripe.payment_service_provider.products.dto.request.ShippingMethodRequest;
 import com.stripe.payment_service_provider.products.mappers.CartObjectMapper;
 import com.stripe.payment_service_provider.products.model.Cart;
 import com.stripe.payment_service_provider.products.model.CartItem;

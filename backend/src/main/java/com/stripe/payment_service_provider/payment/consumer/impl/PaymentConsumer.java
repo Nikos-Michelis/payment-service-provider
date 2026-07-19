@@ -1,6 +1,5 @@
 package com.stripe.payment_service_provider.payment.consumer.impl;
 
-import com.google.gson.Gson;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.payment_service_provider.payment.consumer.InvoiceEventHandler;
@@ -28,7 +27,7 @@ import java.time.Instant;
 public class PaymentConsumer {
 
     private final InvoiceEventHandler invoiceEventHandler;
-    private final PaymentIntentHandler PaymentIntentHandler;
+    private final PaymentIntentHandler paymentIntentHandler;
     private final SubscriptionEventHandler subscriptionEventHandler;
     private final PaymentMethodService paymentMethodService;
     private final EventRepository eventRepository;
@@ -40,18 +39,18 @@ public class PaymentConsumer {
             groupId = "stripe-payment-processor"
     )
     public void processPayments(@Payload String payload, Acknowledgment ack) throws StripeException {
-        Event event = new Gson().fromJson(payload, Event.class);
+        Event event = parsePayload(payload);
         switch (event.getType()) {
             case "payment_method.attached" -> paymentMethodService.addPaymentMethod(event);
             case "payment_method.detached" -> paymentMethodService.removePaymentMethod(event);
-            case "payment_intent.created" -> PaymentIntentHandler.onPaymentIntentCreate(event);
+            case "payment_intent.created" -> paymentIntentHandler.onPaymentIntentCreate(event);
             case "payment_intent.processing" ->
-                    PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.PROCESSING);
+                    paymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.PROCESSING);
             case "payment_intent.succeeded" ->
-                    PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.CAPTURED);
+                    paymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.CAPTURED);
             case "payment_intent.canceled" ->
-                    PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.CANCELED);
-            case "payment_intent.failed" -> PaymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.FAILED);
+                    paymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.CANCELED);
+            case "payment_intent.failed" -> paymentIntentHandler.onPaymentIntentUpdate(event, PaymentStatus.FAILED);
             case "invoice.paid" -> invoiceEventHandler.onInvoicePaid(event);
             case "invoice.payment_failed" -> invoiceEventHandler.onInvoiceUpdate(event);
             case "invoice.upcoming" -> invoiceEventHandler.onInvoiceUpcoming(event);
@@ -59,7 +58,7 @@ public class PaymentConsumer {
             default -> log.debug("Unhandled payment event: {}", event.getType());
         }
 
-        updateEventStatus(event.getId(), EventStatus.PROCESSED);
+        updateEventStatus(event.getId());
         ack.acknowledge();
     }
 
@@ -68,7 +67,7 @@ public class PaymentConsumer {
             groupId = "stripe-payment-processor"
     )
     public void processSubscriptions(@Payload String payload, Acknowledgment ack) throws StripeException, InvalidStateTransitionException {
-        Event event = new Gson().fromJson(payload, Event.class);
+        Event event = parsePayload(payload);
         switch (event.getType()) {
             case "customer.subscription.created" -> subscriptionEventHandler.onSubscriptionCreate(event);
             case "customer.subscription.updated" -> subscriptionEventHandler.onSubscriptionUpdate(event);
@@ -76,7 +75,7 @@ public class PaymentConsumer {
             default -> log.debug("Unhandled billing event: {}", event.getType());
         }
 
-        updateEventStatus(event.getId(), EventStatus.PROCESSED);
+        updateEventStatus(event.getId());
         ack.acknowledge();
     }
 
@@ -85,7 +84,7 @@ public class PaymentConsumer {
             groupId = "stripe-payment-processor"
     )
     public void processProducts(@Payload String payload, Acknowledgment ack) throws InvalidStateTransitionException {
-        Event event = new Gson().fromJson(payload, Event.class);
+        Event event = parsePayload(payload);
         switch (event.getType()) {
             case "product.created" -> planService.onPlanCreate(event);
             case "product.updated", "product.deleted" -> planService.onPlanUpdate(event);
@@ -94,19 +93,19 @@ public class PaymentConsumer {
             default -> log.debug("Unhandled billing event: {}", event.getType());
         }
 
-        updateEventStatus(event.getId(), EventStatus.PROCESSED);
+        updateEventStatus(event.getId());
         ack.acknowledge();
         log.info("Processed billing event [{}] type [{}]", event.getId(), event.getType());
     }
 
-    private Event parse(String payload) {
+    private Event parsePayload(String payload) {
         return objectMapper.readValue(payload, Event.class);
     }
 
-    private void updateEventStatus(String eventId, EventStatus status) {
+    private void updateEventStatus(String eventId) {
         eventRepository.findByStripeEventId(eventId).ifPresent(webhookEvent -> {
-            webhookEvent.setStatus(status);
-            if (status == EventStatus.PROCESSED) webhookEvent.setProcessedAt(Instant.now());
+            webhookEvent.setStatus(EventStatus.PROCESSED);
+            webhookEvent.setProcessedAt(Instant.now());
             eventRepository.save(webhookEvent);
         });
     }
